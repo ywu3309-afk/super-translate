@@ -1,0 +1,8 @@
+# Public release repository: keep this tree binary-release-only.
+# Source code and model packages must stay in the private source repository.
+*.zip
+*.rar
+*.7z
+*.py
+*.js
+*.ts
