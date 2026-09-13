@@ -1,1 +1,1 @@
-{"versionCode":22,"versionName":"0.3.3","apkUrl":"https://raw.githubusercontent.com/ywu3309-afk/super-translate/main/android/SuperTranslate-0.3.3.apk","sha256":"ef3376ae8defa3c5788d159c73c643a88d5fb5045608b75211715374f5f78bdb","releaseNotes":"Android 端蓝白首页、附件入口、后台连接与自动更新检查"}
+{"versionCode":23,"versionName":"0.3.4","apkUrl":"https://raw.githubusercontent.com/ywu3309-afk/super-translate/main/android/SuperTranslate-0.3.4.apk","sha256":"96e964d2eee17c27b247adc1f5f2f53474cfc6525610b2b11ffc2b728a93a0df","releaseNotes":"断线时保留 WhatsApp 页面并显示网络恢复提示；安全登录会话自动恢复"}
