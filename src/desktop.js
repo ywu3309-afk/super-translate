@@ -26,6 +26,7 @@ if(app.isPackaged){
 }
 if(process.env.ST_TEST_PROFILE&&!app.isPackaged)app.setPath('userData',process.env.ST_TEST_PROFILE);
 let win,db,auth,authSession=null,cloudSession=null,activeView=null,child=null,childKind='',childError='',modelStarting=null,speechRuntime=null,translationTail=Promise.resolve(),currentPlatform='whatsapp';
+const translationCache=new Map();
 let currentLiveConfig={incoming:'zh-CN',outgoing:'en',outgoingLabel:'英语',enabled:true,automatic:false,history:false,translateSend:true,blockChinese:true};
 // A login renderer is allowed to hand off to the workbench only immediately
 // after the main process has accepted credentials.  Do not infer this from a
@@ -917,6 +918,9 @@ async function localTranslate(text,targetName){
 async function translateNow({text,target}){
   text=requireString(text);if(!LANGUAGES[target])throw new Error('不支持的目标语言。');if(inspectText(text).length)throw new Error('原文疑似输入错误，请核对、编辑后再译。');
   const cfg=db.get().settings,p=protect(text);let value,engine,detected='auto',billedByProxy=false;
+  const cacheKey=String(cfg.engine||'local')+'\0'+target+'\0'+text;
+  const cached=translationCache.get(cacheKey);
+  if(cached)return{...cached};
   preflightCloud(text.length);
   if(cfg.engine==='deepl'){
     if(cloudSession&&(cloudSession.accountType==='customer'||cloudSession.accountType==='admin')){
@@ -941,7 +945,9 @@ async function translateNow({text,target}){
     value=await localTranslate(p.text,targetName);engine=childKind==='python'?'Hy-MT2 本地（Python）':'Hy-MT2 本地（llama.cpp）';
   }
   const billing=billedByProxy?null:await consumeCloud(text.length);
-  return {translation:restore(value,p.values),engine,detected,quota:cloudSession?.quota??null,offline:!!billing?.offline};
+  const result={translation:restore(value,p.values),engine,detected,quota:cloudSession?.quota??null,offline:!!billing?.offline};
+  translationCache.set(cacheKey,result);if(translationCache.size>500)translationCache.delete(translationCache.keys().next().value);
+  return {...result};
 }
 function translate(input){const task=translationTail.then(()=>translateNow(input));translationTail=task.catch(()=>{});return task;}
 function boundedBounds(raw){const [width,height]=win.getContentSize();if(!raw||!['x','y','width','height'].every(k=>Number.isFinite(raw[k])))throw new Error('区域参数无效。');const x=Math.max(0,Math.round(raw.x)),y=Math.max(0,Math.round(raw.y));return{x,y,width:Math.max(0,Math.min(Math.round(raw.width),width-x)),height:Math.max(0,Math.min(Math.round(raw.height),height-y))};}
