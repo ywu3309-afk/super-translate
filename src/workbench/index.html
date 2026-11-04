@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cdn.simpleicons.org https://upload.wikimedia.org https://botim.me https://www.botim.me https://play-lh.googleusercontent.com; connect-src http://127.0.0.1:18801; frame-src http://127.0.0.1:18801; object-src 'none'; base-uri 'none'; form-action 'self'">
+  <title>超级翻译 · WhatsApp 客服工作台</title>
+  <link rel="stylesheet" href="app.css">
+  <style>.master-toggle-row{color:#2878ed;font-weight:600;border-bottom:1px solid #e7eef8;margin-bottom:3px}
+.scrm-wrap{max-width:860px;margin:0 auto;padding:24px 16px}
+.scrm-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px}
+.scrm-login-card{max-width:420px;margin:56px auto 0;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:28px 24px}
+.scrm-title{font-size:16px;font-weight:600;color:#0f172a}
+.scrm-sub{font-size:12px;color:#64748b;margin-top:4px}
+.scrm-input{width:100%;box-sizing:border-box;margin-top:16px;padding:9px 12px;font-size:13px;color:#0f172a;background:#fff;border:1px solid #cbd5e1;border-radius:8px;outline:none;font-family:inherit}
+.scrm-input:focus{border-color:#2878ed;box-shadow:0 0 0 2px rgba(40,120,237,.15)}
+.scrm-error{display:none;margin-top:10px;font-size:12px;color:#dc2626}
+.scrm-error.show{display:block}
+.scrm-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.scrm-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+.scrm-stat{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px}
+.scrm-stat-label{font-size:12px;color:#64748b}
+.scrm-stat-value{font-size:26px;font-weight:700;color:#0f172a;margin-top:6px}
+.scrm-stat-note{font-size:11px;color:#94a3b8;margin-top:2px}
+.scrm-section{margin-top:16px}
+.scrm-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:#eef4fe;color:#1d5cc7;font-size:12px;border:1px solid #d6e5fb}
+.scrm-chip em{font-style:normal;font-weight:700}
+.scrm-table{width:100%;border-collapse:collapse;font-size:12px}
+.scrm-table th{text-align:left;color:#64748b;font-weight:500;padding:6px 8px;border-bottom:1px solid #e2e8f0}
+.scrm-table td{padding:7px 8px;border-bottom:1px solid #f1f5f9;color:#0f172a}
+.scrm-pill{padding:2px 8px;border-radius:999px;font-size:11px}
+.scrm-pill-ok{background:#ecfdf3;color:#15803d}
+.scrm-pill-fail{background:#fef2f2;color:#b91c1c}
+.scrm-pill-unknown{background:#f8fafc;color:#64748b}
+.scrm-actions{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+</style>
+  <link rel="icon" href="assets/logo.png" type="image/png">
+</head>
+<body class="h-screen overflow-hidden bg-slate-100 text-slate-700 font-sans text-[12px]">
+  <header class="titlebar flex items-center justify-between px-3 border-b border-blue-200 shrink-0">
+    <div class="flex items-center gap-2 min-w-0"><img src="assets/logo.png" width="21" height="21" alt="超级翻译"><h1 class="font-semibold text-[13px] text-slate-800">超级翻译</h1><span class="title-divider"></span><span class="text-[11px] text-slate-500">跨平台客服翻译工作台</span></div>
+    <div class="flex items-center gap-3"><button id="user-center-button" class="title-button" data-action="user-center" title="用户中心" aria-label="用户中心"><i data-lucide="circle-user-round"></i><span>用户中心</span></button><button class="title-button" data-tool="settings" title="模型设置" aria-label="模型设置"><i data-lucide="settings-2"></i><span>模型设置</span></button><div class="window-controls" role="group" aria-label="窗口控制"><button id="window-minimize" class="window-control window-minimize" type="button" title="最小化" aria-label="最小化">−</button><button id="window-maximize" class="window-control window-maximize" type="button" title="最大化/还原" aria-label="最大化/还原">□</button><button id="window-close" class="window-control window-close" type="button" title="关闭窗口" aria-label="关闭窗口">×</button></div></div>
+  </header>
+
+  <!-- 唯一主布局：固定 50 / 64 / 272 / 自适应 / 256 / 48，共六栏。 -->
+  <main id="workbench" class="workbench" aria-label="六栏 WhatsApp 客服工作台">
+    <!-- 1. 系统主导航 -->
+    <nav class="system-rail border-r border-slate-200 bg-white flex flex-col items-center" aria-label="系统导航" data-column="system">
+      <button class="rail-button selected" data-action="messages" title="消息" aria-label="消息"><i data-lucide="message-circle"></i><span class="unread rail-unread">3</span></button>
+      <button class="rail-button" data-action="call" title="电话" aria-label="电话"><i data-lucide="phone"></i></button>
+      <button class="rail-button" data-action="contacts" title="通讯录" aria-label="通讯录"><i data-lucide="contact-round"></i></button>
+      <button class="rail-button" data-action="archive" title="数据归档" aria-label="数据归档"><i data-lucide="archive"></i></button>
+      <div class="flex-1"></div>
+      <button class="rail-button" data-action="add-account" title="新建实例" aria-label="新建实例"><i data-lucide="circle-plus"></i></button>
+    </nav>
+
+    <!-- 2. 多开账号切换 -->
+    <aside class="account-rail border-r border-slate-200 flex flex-col items-center" aria-label="多平台服务实例" data-column="accounts">
+      <span class="rail-caption">账号</span>
+      <div id="accounts" class="w-full flex flex-col items-center gap-1"></div>
+      <div class="flex-1"></div>
+      <button class="add-account" data-action="add-account" aria-label="添加多开账号" title="添加多开账号"><i data-lucide="plus"></i></button>
+      <span class="rail-caption pb-2" id="account-count">2 个实例</span>
+    </aside>
+
+    <!-- 3. 会话联系人列表 -->
+    <section class="contact-column bg-white border-r border-slate-200 flex flex-col min-h-0" aria-label="会话联系人列表" data-column="contacts">
+      <header class="account-header flex items-center justify-between border-b border-slate-100 px-3">
+        <div class="min-w-0"><div id="account-name" class="font-semibold text-[13px] truncate">Super IPTV</div><div id="account-number" class="text-[11px] text-slate-400 mt-0.5">+86 176 **** 1162</div></div>
+        <div class="flex items-center"><button class="icon-button" data-action="new-chat" title="开始新会话" aria-label="开始新会话"><i data-lucide="square-pen"></i></button><button class="icon-button" data-action="account-menu" title="账号操作" aria-label="账号操作"><i data-lucide="ellipsis-vertical"></i></button></div>
+      </header>
+      <div class="p-2"><label class="search-box flex items-center gap-2"><i data-lucide="search"></i><input id="contact-search" placeholder="搜索或开始新聊天" aria-label="搜索联系人" autocomplete="off"><kbd>⌘ K</kbd></label></div>
+      <div class="contact-tabs flex items-center px-2 gap-1 border-b border-slate-100" role="tablist" aria-label="会话筛选">
+        <button class="filter active" data-filter="all" role="tab" aria-selected="true">所有</button><button class="filter" data-filter="unread" role="tab" aria-selected="false">未读 <span class="filter-count">3</span></button><button class="filter" data-filter="star" role="tab" aria-selected="false">特别关注</button><button class="filter" data-filter="group" role="tab" aria-selected="false">群组</button>
+      </div>
+      <button class="archive-row" data-action="archive"><i data-lucide="archive"></i><span>已归档</span><span class="ml-auto text-slate-400">查看</span></button>
+      <div id="contact-list" class="flex-1 min-h-0 overflow-y-auto" role="list" aria-label="客户会话"></div>
+      <div class="list-footer"><i data-lucide="lock-keyhole"></i><span>联系人资料仅保存在本机</span></div>
+    </section>
+
+    <!-- 4. 核心双语对话区 -->
+    <section class="conversation flex flex-col min-w-0 min-h-0" aria-label="双语聊天视窗" data-column="chat">
+      <header class="chat-header flex items-center justify-between px-3 border-b border-slate-200 shrink-0">
+        <div class="flex items-center gap-2 min-w-0"><div id="chat-avatar" class="avatar small tone-fr">FR</div><div class="min-w-0"><div class="flex items-center gap-1 min-w-0"><strong id="chat-name" class="truncate font-medium"></strong><span id="chat-country" class="country-label shrink-0"></span></div><div class="flex items-center gap-1.5 text-[11px] mt-0.5"><span class="online-dot"></span><span class="text-emerald-700">在线</span><span class="text-slate-400">· 演示状态</span><span id="header-note" class="header-note truncate"></span></div></div></div>
+        <div class="flex items-center gap-1 shrink-0"><button class="icon-button" data-action="video" title="视频通话" aria-label="视频通话"><i data-lucide="video"></i></button><button class="icon-button" data-action="call" title="语音通话" aria-label="语音通话"><i data-lucide="phone"></i></button><button class="icon-button" data-action="search-chat" title="搜索聊天内容" aria-label="搜索聊天内容"><i data-lucide="search"></i></button><button class="icon-button" data-action="chat-menu" title="会话选项" aria-label="会话选项"><i data-lucide="ellipsis-vertical"></i></button></div>
+      </header>
+      <div id="message-search-bar" class="message-search-bar" hidden><i data-lucide="search"></i><input id="message-search" placeholder="在双语消息中搜索" aria-label="搜索双语消息"><button class="icon-button" data-action="close-search" aria-label="关闭搜索"><i data-lucide="x"></i></button></div>
+      <div id="messages" class="message-stream flex-1 min-h-0 overflow-y-auto" role="log" aria-label="外语与中文对照消息" aria-live="polite"></div>
+      <div class="composer shrink-0">
+        <div class="translation-indicator flex items-center justify-between gap-1"><div class="flex items-center gap-1 min-w-0"><i data-lucide="languages"></i><span>输入任意语言将自动翻译为：<strong id="target-indicator">法语</strong> 后发送</span></div><span class="manual-label">发送前预览</span></div>
+        <div id="attachment-preview" class="attachment-preview" hidden></div>
+        <div class="compose-box flex items-end gap-1.5"><button class="icon-button" data-action="emoji" title="表情" aria-label="插入表情"><i data-lucide="smile"></i></button><button class="icon-button" data-action="attachment" title="附件" aria-label="选择附件"><i data-lucide="paperclip"></i></button><textarea id="composer" rows="2" placeholder="输入任意语言，先预览目标语言译文…" aria-label="待翻译回复" maxlength="4000"></textarea><button class="icon-button" data-action="voice" title="语音消息" aria-label="语音消息"><i data-lucide="mic"></i></button><button id="send-button" class="send-button" title="预览译文后发送到演示会话"><span>发送</span><i data-lucide="send"></i></button></div>
+        <div class="compose-bottom flex items-center justify-between"><span class="flex items-center gap-1"><i data-lucide="shield-check"></i><span id="risk-indicator">任意源语言 · 发送前自动翻译</span></span><span>Enter 预览 · Shift+Enter 换行</span></div>
+        <input id="attachment-input" type="file" hidden>
+      </div>
+    </section>
+
+    <!-- 5. 固定 256px 规则抽屉，不浮动、不覆盖聊天。 -->
+    <aside class="drawer bg-white border-l border-slate-200 flex flex-col min-h-0" aria-label="翻译规则抽屉" data-column="rules">
+      <header class="drawer-header flex items-center justify-between px-3 shrink-0"><div class="flex items-center gap-2"><span class="section-marker"></span><strong id="drawer-title" class="font-semibold">翻译设置</strong></div><span id="saved-status" class="text-[11px] text-slate-400" role="status">本地设置</span></header>
+      <div id="translation-panel" class="drawer-panel flex-1 min-h-0 overflow-y-auto">
+        <div class="scope-tabs mx-3 flex" role="tablist" aria-label="翻译规则作用域"><button class="active" data-scope="contact" role="tab" aria-selected="true">当前联系人</button><button data-scope="global" role="tab" aria-selected="false">全局联系人</button></div>
+        <div class="px-3 pt-3 pb-2"><div class="scope-description"><span id="scope-name" class="truncate"></span><span class="scope-chip" id="scope-chip">跟随全局</span></div>
+          <div class="incoming-settings mt-2"><label class="field-label" for="source-language">对方语言识别</label><select id="source-language" data-setting="source"><option value="auto">自动识别 (Auto)</option><option value="en">英语 (English)</option><option value="es">西班牙语 (Español)</option><option value="fr">法语 (Français)</option><option value="de">德语 (Deutsch)</option><option value="pt">葡萄牙语 (Português)</option><option value="it">意大利语 (Italiano)</option><option value="ar">阿拉伯语 (العربية)</option><option value="ru">俄语 (Русский)</option><option value="tr">土耳其语 (Türkçe)</option><option value="nl">荷兰语 (Nederlands)</option><option value="pl">波兰语 (Polski)</option><option value="cs">捷克语 (Čeština)</option><option value="sk">斯洛伐克语 (Slovenčina)</option><option value="el">希腊语 (Ελληνικά)</option><option value="sq">阿尔巴尼亚语 (Shqip)</option><option value="th">泰语 (ไทย)</option><option value="vi">越南语 (Tiếng Việt)</option><option value="id">印尼语 (Bahasa Indonesia)</option><option value="ja">日语 (日本語)</option><option value="ko">韩语 (한국어)</option><option value="zh-CN">中文 (简体)</option><option value="zh-TW">中文 (繁体)</option><option value="hi">印地语 (हिन्दी)</option><option value="uk">乌克兰语 (Українська)</option></select><label class="field-label mt-3" for="incoming-language">接收信息翻译为 <span class="text-brand">↓ 显示</span></label><select id="incoming-language" data-setting="incoming"><option value="en">英语 (English)</option><option value="es">西班牙语 (Español)</option><option value="fr">法语 (Français)</option><option value="de">德语 (Deutsch)</option><option value="pt">葡萄牙语 (Português)</option><option value="it">意大利语 (Italiano)</option><option value="ar">阿拉伯语 (العربية)</option><option value="ru">俄语 (Русский)</option><option value="tr">土耳其语 (Türkçe)</option><option value="nl">荷兰语 (Nederlands)</option><option value="pl">波兰语 (Polski)</option><option value="cs">捷克语 (Čeština)</option><option value="sk">斯洛伐克语 (Slovenčina)</option><option value="el">希腊语 (Ελληνικά)</option><option value="sq">阿尔巴尼亚语 (Shqip)</option><option value="th">泰语 (ไทย)</option><option value="vi">越南语 (Tiếng Việt)</option><option value="id">印尼语 (Bahasa Indonesia)</option><option value="ja">日语 (日本語)</option><option value="ko">韩语 (한국어)</option><option value="zh-CN">中文 (简体)</option><option value="zh-TW">中文 (繁体)</option><option value="hi">印地语 (हिन्दी)</option><option value="uk">乌克兰语 (Українська)</option></select></div>
+          <label class="field-label mt-3" for="outgoing-language">输入内容翻译为 <span class="text-brand">↓ 后发送</span></label><select id="outgoing-language" data-setting="outgoing"><option value="en">英语 (English)</option><option value="es">西班牙语 (Español)</option><option value="fr">法语 (Français)</option><option value="de">德语 (Deutsch)</option><option value="pt">葡萄牙语 (Português)</option><option value="it">意大利语 (Italiano)</option><option value="ar">阿拉伯语 (العربية)</option><option value="ru">俄语 (Русский)</option><option value="tr">土耳其语 (Türkçe)</option><option value="nl">荷兰语 (Nederlands)</option><option value="pl">波兰语 (Polski)</option><option value="cs">捷克语 (Čeština)</option><option value="sk">斯洛伐克语 (Slovenčina)</option><option value="el">希腊语 (Ελληνικά)</option><option value="sq">阿尔巴尼亚语 (Shqip)</option><option value="th">泰语 (ไทย)</option><option value="vi">越南语 (Tiếng Việt)</option><option value="id">印尼语 (Bahasa Indonesia)</option><option value="ja">日语 (日本語)</option><option value="ko">韩语 (한국어)</option><option value="zh-CN">中文 (简体)</option><option value="zh-TW">中文 (繁体)</option><option value="hi">印地语 (हिन्दी)</option><option value="uk">乌克兰语 (Українська)</option></select>
+          <div class="rule-toggles mt-3 pt-1 border-t border-slate-100">
+            <label class="switch-row master-toggle-row" for="translation-enabled"><span class="flex items-center gap-1"><i data-lucide="languages"></i>翻译功能</span><span class="toggle"><input type="checkbox" id="translation-enabled" data-setting="enabled" checked role="switch"><span class="toggle-track"></span></span></label>
+            <label class="switch-row" for="automatic"><span>自动翻译</span><span class="toggle"><input type="checkbox" id="automatic" data-setting="automatic" checked role="switch"><span class="toggle-track"></span></span></label>
+            <label class="switch-row" for="translate-send"><span>翻译后发送</span><span class="toggle"><input type="checkbox" id="translate-send" data-setting="translateSend" checked role="switch"><span class="toggle-track"></span></span></label>
+            <div class="risk-rule"><label class="switch-row" for="block-chinese"><span class="flex items-center gap-1"><i data-lucide="shield-check"></i>原文中文保护</span><span class="toggle"><input type="checkbox" id="block-chinese" data-setting="blockChinese" checked role="switch"><span class="toggle-track"></span></span></label><p>仅在关闭自动翻译发送时阻止中文原文误发；不会限制英语、德语等源语言。</p></div>
+            <label class="switch-row" for="translate-history"><span>自动翻译历史消息</span><span class="toggle"><input type="checkbox" id="translate-history" data-setting="history" role="switch"><span class="toggle-track"></span></span></label>
+            <p id="history-status" class="panel-help" style="font-size:11px;margin:4px 0 8px">翻译已加载的历史文字；向上滚动加载后继续。</p>
+          </div>
+          <div class="rule-note flex gap-1.5"><i data-lucide="info"></i><p>当前为前端交互演示。开关保存到本机，不会控制真实 WhatsApp 或发起外部请求。</p></div>
+          <button class="reset-rule" id="reset-rule"><i data-lucide="rotate-ccw"></i>恢复为全局规则</button>
+          <div class="compact-section"><div class="flex items-center justify-between"><strong>联系人资料</strong><button class="text-brand" data-tool="notes">编辑备注</button></div><div class="detail-row"><span>号码归属</span><span id="detail-country"></span></div><div class="detail-row"><span>会话语言</span><span id="detail-language"></span></div><div class="flex flex-wrap gap-1.5 mt-2" id="contact-tags"></div><p class="text-[11px] text-slate-400 mt-2">号码归属不代表客户实际所在地。</p></div>
+        </div>
+      </div>
+      <div id="tool-panel" class="drawer-panel flex-1 min-h-0 overflow-y-auto p-3" hidden></div>
+      <footer class="drawer-footer"><i data-lucide="lock-keyhole"></i><span>备注仅存本机，不修改 WhatsApp 原名</span></footer>
+    </aside>
+
+    <!-- 6. 48px 快捷工具栏 -->
+    <nav class="tools-rail bg-slate-50 border-l border-slate-200 flex flex-col items-center" aria-label="快捷工具栏" data-column="tools">
+      <button class="tool-button" data-tool="ai-replies" title="AI 智能回复"><i data-lucide="bot"></i><span>AI 智能回复</span></button>
+      <button class="tool-button" data-tool="customer-profile" title="客户画像"><i data-lucide="contact-round"></i><span>客户画像</span></button>
+      <button class="tool-button active" data-tool="translation" title="翻译设置"><i data-lucide="languages"></i><span>翻译设置</span></button>
+      <button class="tool-button" data-tool="quick" title="快捷回复"><i data-lucide="message-square-text"></i><span>快捷回复</span></button>
+      <button class="tool-button" data-tool="broadcast" title="群发消息"><i data-lucide="send"></i><span>群发消息</span></button>
+      <button class="tool-button" data-tool="fans" title="粉丝统计"><i data-lucide="chart-no-axes-column"></i><span>粉丝统计</span></button>
+      <button class="tool-button" data-tool="customer-list" title="联系人"><i data-lucide="users"></i><span>联系人</span></button>
+      <button class="tool-button" data-tool="keywords" title="关键词回复"><i data-lucide="key-round"></i><span>关键词回复</span></button>
+      <button class="tool-button" data-tool="proxy" title="网络设置"><i data-lucide="wifi"></i><span>网络设置</span></button>
+      <button class="tool-button" data-tool="fingerprint" title="指纹环境"><i data-lucide="fingerprint"></i><span>指纹环境</span></button>
+      <button class="tool-button" data-tool="refresh" title="刷新同步"><i data-lucide="refresh-cw"></i><span>刷新同步</span></button>
+      <button class="tool-button" data-tool="risk" title="风控检测"><i data-lucide="shield-alert"></i><span>风控检测</span></button>
+      <button class="tool-button" data-tool="openchat" title="开口回传"><i data-lucide="megaphone"></i><span>开口回传</span></button>
+      <button class="tool-button" data-tool="notes" title="粉丝备注"><i data-lucide="notebook-pen"></i><span>粉丝备注</span></button>
+    </nav>
+  </main>
+  <section id="service-view-status" class="service-view-status" hidden role="status" aria-live="polite">
+    <div class="service-view-status-card">
+      <span id="service-view-status-icon" class="service-view-status-icon" aria-hidden="true"></span>
+      <strong id="service-view-status-title">正在加载服务页面…</strong>
+      <p id="service-view-status-message">请稍候。</p>
+      <button id="service-view-retry" class="primary-button" type="button" hidden>重新加载</button>
+    </div>
+  </section>
+  <button id="right-pane-toggle" class="right-pane-toggle" type="button" aria-label="收起右侧工作台" aria-expanded="true" title="收起右侧工作台"><span aria-hidden="true">❯</span></button>
+  <div class="modal-overlay" id="add-service-modal" hidden>
+    <section class="modal-container" role="dialog" aria-modal="true" aria-labelledby="add-service-title">
+      <header class="modal-header"><div class="title" id="add-service-title"><span class="icon" aria-hidden="true">🛡️</span> 添加服务实例</div><button class="modal-close-btn" id="btn-close-service-modal" type="button" aria-label="关闭">✕</button></header>
+      <div class="service-controls"><label for="service-custom-name">实例名称</label><input id="service-custom-name" type="text" maxlength="40" placeholder="可选，例如：欧洲客服" aria-label="实例名称" autocomplete="off"><label for="service-quantity">数量</label><input id="service-quantity" type="number" value="1" min="1" max="10" inputmode="numeric"></div>
+      <p class="modal-help">每个实例使用独立的 Cookie、LocalStorage 和登录分区；同一平台可安全多开。</p>
+      <div class="services-grid" id="services-grid-container" role="listbox" aria-label="选择服务平台"></div>
+      <div class="session-config">
+        <label class="session-label" for="session-proxy">代理 IP（格式：socks5://ip:port 或 http://ip:port）</label>
+        <div class="session-inline"><input id="session-proxy" class="session-input" placeholder="如：socks5://127.0.0.1:1080（留空则直连）" autocomplete="off"><button id="session-test-proxy" class="secondary-button" type="button">⚡ 测试</button></div>
+        <div class="session-fp-card">
+          <div class="session-fp-head"><strong>🔒 指纹配置</strong><button id="session-random" class="secondary-button" type="button">⟳ 随机</button></div>
+          <div class="session-grid">
+            <label>操作系统<select id="session-fp-os"><option value="windows">Windows</option><option value="macos">macOS</option><option value="linux">Linux</option></select></label>
+            <label>GPU<select id="session-fp-gpu"><option value="ANGLE (NVIDIA, NVIDIA GeForce GTX 1660 Direct3D11 vs_5_0 ps_5_0, D3D11)">NVIDIA GTX 1660</option><option value="ANGLE (NVIDIA, NVIDIA GeForce RTX 3070 Direct3D11 vs_5_0 ps_5_0, D3D11)">NVIDIA RTX 3070</option><option value="ANGLE (Intel, Intel(R) UHD Graphics 630 Direct3D11 vs_5_0 ps_5_0, D3D11)">Intel UHD 630</option></select></label>
+          </div>
+          <label class="session-label" for="session-fp-ua">User-Agent</label><input id="session-fp-ua" class="session-input" autocomplete="off">
+          <div class="session-grid three">
+            <label>分辨率<select id="session-fp-resolution"><option>1440x900</option><option>1920x1080</option><option>1366x768</option><option>2560x1440</option></select></label>
+            <label>时区<select id="session-fp-timezone"><option value="auto">基于 IP (自动)</option><option value="Asia/Shanghai">Asia/Shanghai</option><option value="UTC">UTC</option><option value="America/New_York">America/New_York</option></select></label>
+            <label>语言<select id="session-fp-language"><option value="zh-CN,zh">基于 IP (自动)</option><option value="en-US,en">English</option><option value="ja-JP,ja">日本語</option><option value="ko-KR,ko">한국어</option></select></label>
+          </div>
+          <div class="session-grid">
+            <label>CPU 核心<select id="session-fp-cores"><option>4</option><option>6</option><option>8</option><option>12</option><option>16</option></select></label>
+            <label>内存 (GB)<select id="session-fp-memory"><option>4</option><option>8</option><option>16</option><option>32</option></select></label>
+          </div>
+          <div class="session-inline wrap"><label>WebRTC<select id="session-fp-webrtc"><option value="disable_udp">禁用 UDP (推荐)</option><option value="proxy">代理 IP</option><option value="real">真实</option><option value="disable">禁用</option></select></label><label class="session-check"><input id="session-noise-canvas" type="checkbox">Canvas 噪音</label><label class="session-check"><input id="session-noise-audio" type="checkbox">AudioContext</label><label class="session-check"><input id="session-noise-webgl" type="checkbox">WebGL Hash</label><label class="session-check"><input id="session-noise-font" type="checkbox">字体随机</label></div>
+          <button id="session-apply-fp" class="secondary-button" type="button" style="width:100%;margin-top:10px;">应用指纹设置</button>
+        </div>
+        <label class="session-label" for="session-note">备注</label><input id="session-note" class="session-input" placeholder="例如：客服号 1、营销号 A" autocomplete="off">
+      </div>
+      <div class="session-footer"><button id="btn-confirm-add" class="primary-button" type="button">创建会话并获取二维码</button></div>
+    </section>
+  </div>
+  <div id="toast" role="status" aria-live="polite" hidden></div>
+  <dialog id="dialog" aria-labelledby="dialog-title"><form method="dialog"><header><h2 id="dialog-title"></h2><button value="cancel" class="icon-button" aria-label="关闭弹窗"><i data-lucide="x"></i></button></header><div id="dialog-body"></div><footer id="dialog-footer"></footer></form></dialog>
+  <script src="assets/lucide.js"></script>
+  <script src="../platforms.js"></script>
+  <script src="model.js"></script>
+  <script src="traffic-crm.js"></script>
+  <script src="timezones.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

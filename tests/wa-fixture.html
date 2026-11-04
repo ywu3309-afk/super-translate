@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Offline DOM fixture - not WhatsApp</title>
+  <style>body{font:14px Arial;margin:0}#main header{height:70px;padding:20px;box-sizing:border-box;background:#edf4fa}#main footer{position:fixed;bottom:0;background:#eee;width:100%;padding:10px;box-sizing:border-box}[role=textbox]{padding:12px;background:white;border:1px solid #ccc;min-height:20px}[data-pre-plain-text]{margin:20px;background:#eff4f0;padding:12px}</style>
+</head>
+<body>
+  <main id="main">
+    <header><span title="+33 6 00 00 01 01">+33 6 00 00 01 01</span></header>
+    <div data-id="false_33600000101@c.us_test1"><div data-pre-plain-text="[10:00] Sample: "><span class="selectable-text">Hello, please wait a moment.</span></div></div>
+    <footer><div id="composer" contenteditable="true" data-testid="conversation-compose-box-input" data-tab="10" role="textbox" data-lexical-editor="true" aria-label="Test composer"><p><br></p></div><button id="send" aria-label="发送" data-tab="11"><span data-icon="wds-ic-send-filled">Send</span></button></footer>
+  </main>
+  <script>
+    window.sentCount=0;window.sentMessages=[];
+    const composer=document.getElementById('composer');
+    function commit(){const text=composer.innerText.trim();if(!text)return;window.sentMessages.push(text);window.sentCount++;composer.replaceChildren(document.createElement('p'));composer.firstElementChild.append(document.createElement('br'));composer.dispatchEvent(new InputEvent('input',{bubbles:true,inputType:'deleteContentBackward'}));}
+    document.getElementById('send').addEventListener('click',commit);
+    composer.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.defaultPrevented){event.preventDefault();commit();}});
+    window.setFixtureChat=(phone,id)=>{document.querySelector('header span[title]').setAttribute('title',phone);document.querySelector('header span[title]').textContent=phone;document.querySelector('[data-id]').dataset.id=id;};
+  </script>
+</body>
+</html>

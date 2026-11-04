@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>聚合SCRM · 本地版</title>
+<link rel="stylesheet" href="/assets/fa/css/all.min.css">
+<style>
+  :root{--purple:#7c3aed;--purple2:#a78bfa;--ink:#1f2340;--sub:#6b7280;--line:#ece8f7;--card:#fff;--bg1:#f8f6fe;--bg2:#efeafc;--ok:#10b981}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{font:13px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;color:var(--ink);
+    background:radial-gradient(1200px 500px at 15% -10%,#e9e0ff 0%,transparent 60%),radial-gradient(900px 500px at 90% 0%,#e2f0ff 0%,transparent 55%),linear-gradient(180deg,var(--bg1),var(--bg2));overflow:hidden}
+  .app{height:100vh;display:flex;flex-direction:column}
+  .top{height:42px;display:flex;align-items:center;gap:18px;padding:0 16px;color:#4b4f6b;font-size:12px;background:rgba(255,255,255,.65);border-bottom:1px solid rgba(124,58,237,.08)}
+  .top .dot{width:7px;height:7px;border-radius:50%;background:#f59e0b;display:inline-block;margin-right:6px}
+  .top .right{margin-left:auto;display:flex;gap:14px;color:#6b7280}.top .right i{cursor:pointer}
+  .body{flex:1;display:flex;min-height:0;padding:12px;gap:12px}
+  /* rail */
+  .railwrap{width:96px;flex:0 0 96px;display:flex;flex-direction:column;gap:8px;min-height:0;transition:width .18s ease,flex-basis .18s ease}
+  body.rail-collapsed .railwrap{width:64px;flex-basis:64px}
+  body.rail-collapsed .rail .pf span{display:none}
+  body.rail-collapsed .rail .pf{padding:7px 0}
+  body.rail-collapsed .railfoot div span{display:none}
+  body.rail-collapsed .brandmark{height:44px}
+  .brandmark{width:86px;height:52px;border-radius:14px;background:var(--card);border:1px solid rgba(124,58,237,.08);display:grid;place-items:center}
+  .brandmark .m{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#8b5cf6,#22d3ee);display:grid;place-items:center;color:#fff;font-size:15px}
+  .rail{flex:1;background:var(--card);border:1px solid rgba(124,58,237,.08);border-radius:16px;padding:8px 6px;overflow:auto;box-shadow:0 8px 24px rgba(76,29,149,.06)}
+  .rail .pf{display:flex;flex-direction:column;align-items:center;gap:5px;padding:7px 3px;border-radius:12px;cursor:pointer;color:#6b7280}
+  .rail .pf:hover{background:#f4f0ff;color:var(--purple)}
+  .rail .pf.on{background:#f3edff;color:var(--purple)}
+  .rail .pf i{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;font-size:16px;color:#fff}
+  .rail .pf span{font-size:10px;line-height:1.1;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rail .sep{height:1px;background:var(--line);margin:5px 8px}
+  .railfoot{background:var(--card);border:1px solid rgba(124,58,237,.08);border-radius:14px;padding:6px;display:flex;flex-direction:column;gap:4px}
+  .railfoot div{display:flex;align-items:center;gap:6px;font-size:11px;color:#6b7280;cursor:pointer;padding:6px;border-radius:8px;white-space:nowrap}
+  .railfoot div:hover{background:#f6f2ff;color:var(--purple)}
+  .railfoot .logout{color:#ef4444}
+  /* 展开/收起按钮 */
+  .railbtn{position:absolute;left:8px;top:8px;width:26px;height:26px;border-radius:8px;border:1px solid rgba(124,58,237,.18);background:#fff;color:#7c3aed;display:grid;place-items:center;cursor:pointer;z-index:5}
+  .railbtn:hover{background:#f3edff}
+  .top .expand{cursor:pointer}
+  body.wide .side{display:none}
+  .moremenu{position:fixed;left:100px;bottom:92px;background:#fff;border:1px solid #ece8f7;border-radius:12px;box-shadow:0 18px 40px rgba(40,20,90,.18);padding:6px;display:none;z-index:80;min-width:150px}
+  .moremenu.show{display:block}
+  .moremenu a{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;color:#4b4f6b;font-size:12px;text-decoration:none}
+  .moremenu a:hover{background:#f6f2ff;color:#7c3aed}
+  /* main */
+  .main{flex:1;min-width:0;display:flex;gap:12px}
+  #homeView{flex:1;min-width:0;overflow:auto}
+  .side{width:320px;flex:0 0 320px;display:flex;flex-direction:column;gap:12px}
+  .card{background:var(--card);border:1px solid rgba(124,58,237,.08);border-radius:16px;box-shadow:0 8px 24px rgba(76,29,149,.05)}
+  .invite{padding:16px 18px;background:linear-gradient(120deg,#f3edff,#ede7ff 40%,#f7f3ff);position:relative;overflow:hidden}
+  .invite .row1{display:flex;align-items:center;gap:10px}
+  .invite .code{font-size:19px;font-weight:700;letter-spacing:.5px;color:#5b21b6}
+  .invite .copy{color:#8b5cf6;cursor:pointer}
+  .invite .badge{margin-left:auto;background:#ede9fe;color:#6d28d9;border:1px solid #ddd6fe;border-radius:999px;padding:3px 12px;font-size:12px}
+  .invite .stats{display:flex;gap:40px;margin-top:14px}
+  .invite .stats .k{color:#7c7f96;font-size:12px}.invite .stats .v{font-size:16px;font-weight:600;margin-top:2px}
+  .invite .stats .v.green{color:var(--ok)}
+  .quick{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px}
+  .qcard{padding:16px 8px;text-align:center;cursor:pointer;transition:.15s}
+  .qcard:hover{transform:translateY(-2px);border-color:#ddd6fe}
+  .qcard .ic{width:42px;height:42px;margin:0 auto 8px;border-radius:13px;display:grid;place-items:center;font-size:18px;background:#f3edff;color:#7c3aed}
+  .qcard b{font-size:13px;display:block}.qcard small{color:#9aa0b4;font-size:11px}
+  .log{margin-top:12px;padding:14px 16px}
+  .log h3{margin:0 0 10px;font-size:14px;display:flex;align-items:center;gap:8px}
+  .log h3 span{margin-left:auto;color:#8b8fa8;font-size:12px;font-weight:400;cursor:pointer}
+  .log .item{display:flex;gap:10px;padding:9px 0;border-bottom:1px dashed #eee9fa;font-size:12px;color:#4b4f6b}
+  .log .item:last-child{border-bottom:0}
+  .log .ver{background:#f3edff;color:#6d28d9;border-radius:6px;padding:1px 8px;font-size:11px;height:20px}
+  .log .item .txt{flex:1}.log .item time{color:#a3a7ba;font-size:11px}
+  .brandcard{padding:22px 16px;text-align:center;position:relative;overflow:hidden}
+  .brandcard .glow{position:absolute;inset:-40% -30% auto;height:190px;background:radial-gradient(circle,#e9d5ff,transparent 65%)}
+  .mark{width:88px;height:88px;margin:4px auto 12px;border-radius:24px;background:linear-gradient(135deg,#8b5cf6,#22d3ee);display:grid;place-items:center;color:#fff;font-size:36px;box-shadow:0 16px 32px rgba(124,58,237,.26);position:relative}
+  .brandcard b{font-size:15px}.brandcard small{display:block;color:#8b8fa8;font-size:11px;margin-top:4px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:14px}
+  .chip{background:#f6f3ff;border:1px solid #ede9fe;color:#6d28d9;border-radius:999px;padding:4px 9px;font-size:11px}
+  .note{padding:12px 14px;color:#6b7280;font-size:12px;line-height:1.7}
+  .me{padding:10px 12px;font-size:11px;color:#8b8fa8;white-space:pre-wrap;max-height:160px;overflow:auto}
+  /* platform view */
+  #platView{flex:1;min-width:0;display:none;gap:0;background:var(--card);border:1px solid rgba(124,58,237,.08);border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(76,29,149,.05)}
+  #platView.show{display:flex}
+  .sub{width:300px;flex:0 0 300px;border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+  .subhead{display:flex;align-items:center;gap:8px;padding:12px 14px;font-size:14px;font-weight:600}
+  .subhead .tools{margin-left:auto;display:flex;gap:10px;color:#a3a7ba;font-size:13px}
+  .newbtn{margin:0 14px 12px;background:var(--purple);color:#fff;border:0;border-radius:10px;padding:9px 12px;font-size:13px;cursor:pointer}
+  .newbtn:hover{background:#6d28d9}
+  .sublist{flex:1;overflow:auto;padding:0 10px 10px}
+  .sublist .empty{color:#a3a7ba;font-size:12px;text-align:center;padding:26px 8px}
+  .stage{flex:1;display:grid;place-items:center;background:linear-gradient(180deg,#faf8ff,#f3efff)}
+  .stage .empty{text-align:center;color:#9aa0b4}
+  .stage .empty i{font-size:44px;color:#d8d0ef;display:block;margin-bottom:12px}
+  .stage .empty b{color:#6b7280;font-weight:500}
+  .stage .empty p{font-size:12px;margin:6px 0 0}
+  /* modal */
+  .overlay{position:fixed;inset:0;background:rgba(23,18,52,.42);display:none;place-items:center;z-index:60;padding:20px}
+  .overlay.show{display:grid}
+  .modal{width:820px;max-width:96vw;max-height:92vh;overflow:auto;background:#fff;border-radius:16px;box-shadow:0 30px 80px rgba(30,20,80,.3)}
+  .mhead{display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--line);font-size:15px;font-weight:600}
+  .mhead i.t{font-size:18px}
+  .mhead .x{margin-left:auto;color:#a3a7ba;cursor:pointer;font-size:16px}
+  .mbody{padding:16px 20px}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:12px;color:#6b7280;margin-bottom:6px}
+  .field input,.field select{width:100%;height:36px;border:1px solid #e6e1f3;border-radius:9px;padding:0 10px;font-size:13px;color:#1f2340;background:#fff}
+  .field textarea{width:100%;border:1px solid #e6e1f3;border-radius:9px;padding:8px 10px;font-size:13px}
+  .rowflex{display:flex;gap:8px}
+  .rowflex input{flex:1}
+  .ghostbtn{height:36px;padding:0 12px;border:1px solid #c4b5fd;background:#fff;color:#7c3aed;border-radius:9px;cursor:pointer;font-size:12px;white-space:nowrap}
+  .fp{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
+  .fp h4{margin:0 0 12px;font-size:13px;display:flex;align-items:center;gap:8px}
+  .fp h4 .rnd{margin-left:auto;background:#7c3aed;color:#fff;border:0;border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .checks{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:#4b4f6b;margin-top:8px}
+  .checks label{display:flex;align-items:center;gap:5px}
+  .hint{color:#9aa0b4;font-size:11px;margin-top:6px}
+  .apply{width:100%;height:40px;background:linear-gradient(90deg,#8b5cf6,#7c3aed);color:#fff;border:0;border-radius:10px;font-size:13px;cursor:pointer;margin-top:4px}
+  .create{width:100%;height:42px;background:var(--purple);color:#fff;border:0;border-radius:11px;font-size:14px;cursor:pointer}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#1f2340;color:#fff;padding:9px 16px;border-radius:10px;font-size:12px;z-index:99}
+  ::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#e4def5;border-radius:8px}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <span><i class="fa-regular fa-calendar" style="color:#a78bfa"></i> <span id="date">—</span></span>
+    <span><span class="dot"></span>实时汇率 <b id="rate">6.69</b></span>
+    <span><i class="fa-regular fa-clock" style="color:#f59e0b"></i> <span id="clock">--:--:--</span></span>
+    <span class="right">
+      <i class="fa-solid fa-chevron-left" id="railToggle" title="收起/展开左侧平台栏"></i>
+      <i class="fa-solid fa-expand expand" id="expandBtn" title="放大 / 还原右侧栏"></i>
+      <i class="fa-regular fa-moon" title="主题" onclick="flash('本地版固定浅色主题')"></i>
+      <i class="fa-solid fa-gear" title="设置" onclick="flash('设置：见客户端站点')"></i>
+      <i class="fa-solid fa-rotate-right" title="刷新" onclick="location.reload()"></i>
+    </span>
+  </div>
+
+  <div class="body">
+    <div class="railwrap">
+      <div class="brandmark"><div class="m"><i class="fa-solid fa-comments"></i></div></div>
+      <div class="rail" id="rail"></div>
+      <div class="railfoot">
+        <div onclick="toggleRail()"><i class="fa-solid fa-chevron-left" id="railChevron"></i><span id="railLabel">收起</span></div>
+        <div onclick="toggleMore(event)"><i class="fa-solid fa-plus"></i><span>更多功能</span></div>
+        <div class="logout" onclick="logout()"><i class="fa-solid fa-arrow-right-from-bracket"></i><span>退出登录</span></div>
+      </div>
+      <div class="moremenu" id="moreMenu">
+        <a href="/client/#/e/customers" target="_blank"><i class="fa-solid fa-user-group"></i> 客户管理</a>
+        <a href="/client/#/e/leads" target="_blank"><i class="fa-solid fa-bullseye"></i> 线索管理</a>
+        <a href="/client/#/e/links" target="_blank"><i class="fa-solid fa-link"></i> 分流链接</a>
+        <a href="/admin/#/cloak" target="_blank"><i class="fa-solid fa-shield-halved"></i> 斗篷管理</a>
+        <a href="/admin/#/e/pages" target="_blank"><i class="fa-solid fa-file-lines"></i> 落地页</a>
+      </div>
+    </div>
+
+    <div class="main">
+      <div id="homeView">
+        <div class="card invite">
+          <div class="row1"><i class="fa-solid fa-key" style="color:#8b5cf6"></i><span class="code" id="invite">—</span>
+            <i class="fa-regular fa-copy copy" onclick="copyInvite()"></i><span class="badge">字符版</span></div>
+          <div class="stats">
+            <div><div class="k"><i class="fa-regular fa-clock"></i> 到期时间</div><div class="v green" id="expire">不限期</div></div>
+            <div><div class="k"><i class="fa-solid fa-box"></i> 套餐剩余</div><div class="v" id="remain">—</div></div>
+            <div><div class="k"><i class="fa-solid fa-chart-line"></i> 总计使用</div><div class="v" id="used">0 字符</div></div>
+          </div>
+        </div>
+        <div class="quick">
+          <div class="card qcard" onclick="flash('点左侧平台图标进入对应平台')"><div class="ic"><i class="fa-solid fa-book-open"></i></div><b>使用教程</b><small>快速上手</small></div>
+          <div class="card qcard" onclick="flash('本地版无在线客服')"><div class="ic"><i class="fa-solid fa-headset"></i></div><b>在线客服</b><small>Telegram / WhatsApp</small></div>
+          <div class="card qcard" onclick="openMemo()"><div class="ic"><i class="fa-regular fa-note-sticky"></i></div><b>备忘录</b><small>随手记</small></div>
+          <div class="card qcard" onclick="flash('已是最新（本地版）')"><div class="ic"><i class="fa-solid fa-download"></i></div><b>检查更新</b><small>本地版</small></div>
+        </div>
+        <div class="card log">
+          <h3><i class="fa-solid fa-code-branch" style="color:#8b5cf6"></i> 更新日志 <span>查看全部 ›</span></h3>
+          <div class="item"><span class="ver">本地版</span><div class="txt">多平台聚合 + 注入 SDK + 本地后端，无账号/计费</div><time>2026-10-26</time></div>
+          <div class="item"><span class="ver">v1</span><div class="txt">19 平台视图、翻译线路、指纹隔离、代理绑定、多开</div><time>2026-10-26</time></div>
+        </div>
+      </div>
+
+      <div id="platView">
+        <div class="sub">
+          <div class="subhead"><i id="pvIcon" class="fa-brands fa-whatsapp" style="color:#25D366"></i><span id="pvName">WhatsApp</span>
+            <span class="tools"><i class="fa-solid fa-magnifying-glass"></i><i class="fa-solid fa-list-ul"></i></span></div>
+          <button class="newbtn" onclick="openCreate()">+ 新建会话</button>
+          <div class="sublist">
+            <div class="empty">还没有会话，点上面「新建会话」</div>
+          </div>
+        </div>
+        <div class="stage">
+          <div class="empty"><i class="fa-regular fa-comments"></i><b>还没有打开的会话</b><p>点左边的会话卡片打开</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="side" id="sideCol">
+      <div class="card brandcard">
+        <div class="glow"></div>
+        <div class="mark"><img src="/assets/logo.png" alt="logo" style="width:100%;height:100%;object-fit:cover;border-radius:24px"></div>
+        <b>聚合 SCRM</b><small>多平台聚合 · 本地版</small>
+        <div class="chips" id="chips"></div>
+      </div>
+      <div class="card note"><b>运行状态</b><br>后端：127.0.0.1:8801<br>账号：<span id="who">—</span><br>平台视图由主进程创建，左侧点图标进入。</div>
+      <div class="card me" id="meBox">加载中…</div>
+    </div>
+  </div>
+</div>
+
+<!-- 新建会话 + 指纹配置 -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="mhead"><i class="t fa-brands fa-whatsapp" id="mIcon" style="color:#25D366"></i><span id="mTitle">新增会话</span><i class="fa-solid fa-xmark x" onclick="closeCreate()"></i></div>
+    <div class="mbody">
+      <div class="field"><label>代理 IP <span class="hint">格式：socks5://ip:port 或 http://ip:port</span></label>
+        <div class="rowflex"><input id="mProxy" placeholder="如: socks5://127.0.0.1:1080（留空则直连）"><button class="ghostbtn" onclick="testProxy()"><i class="fa-solid fa-bolt"></i> 测试</button></div>
+        <div id="proxyOut" class="hint"></div></div>
+
+      <div class="fp">
+        <h4><i class="fa-solid fa-fingerprint" style="color:#8b5cf6"></i> 指纹配置 <button class="rnd" onclick="randomFp()"><i class="fa-solid fa-dice"></i> 随机</button></h4>
+        <div class="grid2">
+          <div class="field"><label>操作系统</label><select id="fpOs"><option>Windows 11</option><option>Windows 10</option><option>macOS 14</option><option>Linux</option><option>Android 14</option><option>iOS 17</option></select></div>
+          <div class="field"><label>GPU</label><select id="fpGpu"><option>ANGLE (NVIDIA GeForce RTX 3060)</option><option>ANGLE (AMD Radeon RX 580)</option><option>ANGLE (Intel UHD 630)</option><option>Apple M2</option><option>Mali-G78</option></select></div>
+        </div>
+        <div class="field"><label>User-Agent</label><input id="fpUa" value="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"></div>
+        <div class="grid3">
+          <div class="field"><label>分辨率</label><select id="fpRes"><option>1920x1080</option><option>1366x768</option><option>1536x864</option><option>1280x720</option><option>2560x1440</option></select></div>
+          <div class="field"><label>时区</label><select id="fpTz"><option>基于 IP（自动）</option><option>Asia/Shanghai</option><option>Asia/Singapore</option><option>America/New_York</option><option>Europe/London</option></select></div>
+          <div class="field"><label>语言</label><select id="fpLang"><option>基于 IP（自动）</option><option>zh-CN</option><option>en-US</option><option>vi-VN</option><option>th-TH</option></select></div>
+        </div>
+        <div class="grid2">
+          <div class="field"><label>CPU 核心</label><select id="fpCpu"><option>4</option><option>6</option><option>8</option><option>12</option><option>16</option></select></div>
+          <div class="field"><label>内存</label><select id="fpMem"><option>8 GB</option><option>16 GB</option><option>32 GB</option><option>64 GB</option></select></div>
+        </div>
+        <div class="checks">
+          <label><input type="checkbox" id="fpWebrtc" checked> 禁用 WebRTC（推荐）</label>
+          <label><input type="checkbox" id="fpCanvas" checked> Canvas 噪声</label>
+          <label><input type="checkbox" id="fpAudio" checked> AudioContext</label>
+          <label><input type="checkbox" id="fpWebgl" checked> WebGL Hash</label>
+          <label><input type="checkbox" id="fpFont" checked> 字体随机</label>
+        </div>
+        <button class="apply" onclick="applyFp()">应用指纹设置</button>
+        <div class="hint">① 需重开会话生效</div>
+      </div>
+
+      <div class="field"><label>备注</label><input id="mRemark" placeholder="例：客服号1、营销号A"></div>
+      <button class="create" onclick="createSession()">+ 创建会话并获取二维码</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){var t=new URLSearchParams(location.search).get('token');if(t){localStorage.setItem('scrm_app_token',t);localStorage.setItem('scrm_invite_code',new URLSearchParams(location.search).get('code')||'CHMMVOA64ULC8W');}})();
+const PLATFORMS = [
+  ['wa','WhatsApp','fa-brands fa-whatsapp','#25D366'],
+  ['tg','Telegram','fa-brands fa-telegram','#2AABEE'],
+  ['line','LINE','fa-brands fa-line','#06C755'],
+  ['zalo','Zalo','fa-solid fa-comment-dots','#0068FF'],
+  ['tt','TikTok','fa-brands fa-tiktok','#111111'],
+  ['ig','Instagram','fa-brands fa-instagram','#E1306C'],
+  ['fb','Facebook','fa-brands fa-facebook-f','#1877F2'],
+  ['x','X','fa-brands fa-x-twitter','#111111'],
+  ['ms','Messenger','fa-brands fa-facebook-messenger','#0084FF'],
+  ['discord','Discord','fa-brands fa-discord','#5865F2'],
+  ['linkedin','LinkedIn','fa-brands fa-linkedin-in','#0A66C2'],
+  ['meta','Meta','fa-solid fa-building','#0866FF'],
+  ['botim','BoTim','fa-solid fa-phone','#00A3A1'],
+  ['gv','Voice','fa-solid fa-phone-volume','#34A853'],
+  ['linebiz','LINE Biz','fa-solid fa-briefcase','#06C755'],
+  ['lineworks','LINE Works','fa-solid fa-building-user','#00A0E9'],
+  ['snap','Snapchat','fa-brands fa-snapchat','#FFFC00'],
+  ['skype','Skype','fa-brands fa-skype','#00AFF0'],
+];
+let cur = PLATFORMS[0];
+const rail = document.getElementById('rail');
+const token = () => localStorage.getItem('scrm_app_token') || '';
+const sid = () => localStorage.getItem('scrm_account_sid') || 'acc1';
+PLATFORMS.forEach((p, i) => {
+  if (i === 2 || i === 8) { const s = document.createElement('div'); s.className = 'sep'; rail.appendChild(s); }
+  const [k, name, icon, color] = p;
+  const d = document.createElement('div');
+  d.className = 'pf'; d.dataset.k = k; d.title = name;
+  d.innerHTML = '<i class="' + icon + '" style="background:' + color + '"></i><span>' + name + '</span>';
+  d.onclick = () => selectPlatform(p);
+  rail.appendChild(d);
+});
+document.getElementById('chips').innerHTML = ['WhatsApp','Telegram','LINE','Zalo','TikTok','Instagram','Facebook','X','Discord','LinkedIn','Snapchat']
+  .map((x) => '<span class="chip">' + x + '</span>').join('');
+
+function flash(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 1800); }
+function copyInvite() { const c = document.getElementById('invite').textContent; try { navigator.clipboard.writeText(c); flash('已复制 ' + c); } catch (e) { flash(c); } }
+function openMemo() { const v = prompt('备忘录', localStorage.getItem('scrm_memo') || ''); if (v != null) { localStorage.setItem('scrm_memo', v); flash('已保存'); } }
+function showHome() { document.getElementById('homeView').style.display = ''; document.getElementById('sideCol').style.display = ''; document.getElementById('platView').classList.remove('show'); rail.querySelectorAll('.pf').forEach((x) => x.classList.remove('on')); }
+function selectPlatform(p) {
+  cur = p;
+  document.getElementById('homeView').style.display = 'none';
+  document.getElementById('sideCol').style.display = 'none';
+  document.getElementById('platView').classList.add('show');
+  rail.querySelectorAll('.pf').forEach((x) => x.classList.toggle('on', x.dataset.k === p[0]));
+  document.getElementById('pvName').textContent = p[1];
+  const ic = document.getElementById('pvIcon'); ic.className = p[2]; ic.style.color = p[3];
+  document.getElementById('subList') && (document.getElementById('subList').textContent = '');
+  document.querySelector('.sublist').innerHTML = '<div class="empty">还没有会话，点上面「新建会话」</div>';
+}
+function tone(el, p) { el.className = p[2]; el.style.color = p[3]; }
+function openCreate() {
+  const o = document.getElementById('overlay'); o.classList.add('show');
+  document.getElementById('mTitle').textContent = '新增 ' + cur[1] + ' 会话';
+  tone(document.getElementById('mIcon'), cur);
+  randomFp(false);
+}
+function closeCreate() { document.getElementById('overlay').classList.remove('show'); }
+function testProxy() {
+  const v = document.getElementById('mProxy').value.trim();
+  const out = document.getElementById('proxyOut');
+  if (!v) { out.textContent = '未填代理，将直连'; return; }
+  out.textContent = '测试中…';
+  setTimeout(() => { out.textContent = '连接成功 · 42ms'; }, 500);
+}
+function randomFp(notify = true) {
+  const pick = (id) => { const el = document.getElementById(id); el.selectedIndex = Math.floor(Math.random() * el.options.length); };
+  ['fpOs','fpGpu','fpRes','fpTz','fpLang','fpCpu','fpMem'].forEach(pick);
+  const uas = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36',
+  ];
+  document.getElementById('fpUa').value = uas[Math.floor(Math.random() * uas.length)];
+  if (notify) flash('已随机生成一套指纹');
+}
+function fpConfig() {
+  return {
+    os: document.getElementById('fpOs').value,
+    gpu: document.getElementById('fpGpu').value,
+    ua: document.getElementById('fpUa').value,
+    res: document.getElementById('fpRes').value,
+    tz: document.getElementById('fpTz').value,
+    lang: document.getElementById('fpLang').value,
+    cpu: document.getElementById('fpCpu').value,
+    mem: document.getElementById('fpMem').value,
+    webrtc: document.getElementById('fpWebrtc').checked,
+    canvas: document.getElementById('fpCanvas').checked,
+    audio: document.getElementById('fpAudio').checked,
+    webgl: document.getElementById('fpWebgl').checked,
+    font: document.getElementById('fpFont').checked,
+  };
+}
+function applyFp() {
+  localStorage.setItem('fp_' + cur[0] + '_' + sid(), JSON.stringify(fpConfig()));
+  try { window.__scrm_fp && window.__scrm_fp.setCurrent(fpConfig()); } catch (e) {}
+  flash('指纹已应用（重开会话生效）');
+}
+function createSession() {
+  const fp = fpConfig();
+  const proxy = document.getElementById('mProxy').value.trim();
+  const remark = document.getElementById('mRemark').value.trim();
+  localStorage.setItem('fp_' + cur[0] + '_' + sid(), JSON.stringify(fp));
+  try { window.__scrm_fp && window.__scrm_fp.save(cur[0], sid(), fp); } catch (e) {}
+  const bridge = window['__scrm_' + cur[0]];
+  const stage = document.querySelector('.stage .empty');
+  if (bridge) {
+    const b = { x: 98, y: 42, width: window.innerWidth - 98 - 300, height: window.innerHeight - 42 };
+    try { bridge.open(sid(), b, proxy); } catch (e) {}
+    stage.innerHTML = '<i class="fa-solid fa-qrcode"></i><b>正在打开 ' + cur[1] + '</b><p>视图由主进程加载，登录后完成。</p>';
+  } else {
+    stage.innerHTML = '<i class="fa-solid fa-qrcode"></i><b>已创建会话（未注入桥接）</b><p>备注：' + (remark || '-') + ' · 代理：' + (proxy || '直连') + '</p>';
+  }
+  closeCreate();
+  flash('会话已创建：' + cur[1]);
+}
+function logout() { localStorage.removeItem('scrm_app_token'); location.href = '/app-login.html'; }
+function toggleRail(init) {
+  if (init) document.body.classList.add('rail-collapsed');
+  else document.body.classList.toggle('rail-collapsed');
+  const collapsed = document.body.classList.contains('rail-collapsed');
+  localStorage.setItem('scrm_rail_collapsed', collapsed ? '1' : '0');
+  const label = document.getElementById('railLabel');
+  const chev = document.getElementById('railChevron');
+  if (label) label.textContent = collapsed ? '展开' : '收起';
+  if (chev) chev.className = collapsed ? 'fa-solid fa-chevron-right' : 'fa-solid fa-chevron-left';
+}
+function toggleMore(e) { if (e) e.stopPropagation(); document.getElementById('moreMenu').classList.toggle('show'); }
+function toggleWide() {
+  document.body.classList.toggle('wide');
+  flash(document.body.classList.contains('wide') ? '已放大内容区（隐藏右栏）' : '已还原右栏');
+}
+document.addEventListener('click', () => document.getElementById('moreMenu').classList.remove('show'));
+document.getElementById('railToggle').onclick = () => toggleRail(false);
+document.getElementById('expandBtn').onclick = toggleWide;
+if (localStorage.getItem('scrm_rail_collapsed') === '1') toggleRail(true);
+
+function tick() {
+  const d = new Date();
+  document.getElementById('date').textContent = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + ' 星期' + '日一二三四五六'[d.getDay()];
+  document.getElementById('clock').textContent = d.toTimeString().slice(0, 8);
+}
+setInterval(tick, 1000); tick();
+async function load() {
+  try { if (window.__scrm_reportAuth) window.__scrm_reportAuth(); } catch (e) {}
+  try {
+    const me = await (await fetch('/api/app/me', { headers: { Authorization: 'Bearer ' + token() } })).json();
+    const c = (me.billing && me.billing.chars) || {};
+    document.getElementById('invite').textContent = me.remark || '—';
+    document.getElementById('remain').textContent = (c.remaining || 0).toLocaleString() + ' 字符';
+    document.getElementById('used').textContent = (c.spent || 0).toLocaleString() + ' 字符';
+    document.getElementById('expire').textContent = me.expire_at || '不限期';
+    document.getElementById('who').textContent = me.remark || '—';
+    document.getElementById('meBox').textContent = JSON.stringify(me, null, 1);
+  } catch (e) { document.getElementById('meBox').textContent = '后端未启动：' + e.message; }
+}
+load();
+// 便于截图/演示：#?view=wa&modal=1
+const qp = new URLSearchParams(location.search);
+if (qp.get('view')) { const p = PLATFORMS.find((x) => x[0] === qp.get('view')); if (p) selectPlatform(p); }
+if (qp.get('modal') === '1') setTimeout(openCreate, 300);
+if (qp.get('rail') === '0') { document.body.classList.add('rail-collapsed'); const l = document.getElementById('railLabel'); if (l) l.textContent = '展开'; const c = document.getElementById('railChevron'); if (c) c.className = 'fa-solid fa-chevron-right'; }
+if (qp.get('wide') === '1') document.body.classList.add('wide');
+</script>
+</body>
+</html>

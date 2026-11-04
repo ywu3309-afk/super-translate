@@ -1,0 +1,17 @@
+node_modules/
+dist/
+*.log
+__pycache__/
+*.pyc
+work/
+outputs/
+work-runtime-extract-*/
+.env
+.DS_Store
+SuperTranslate-Source-*.zip
+
+scrm/data*/
+*.db
+*.db-wal
+*.db-shm
+

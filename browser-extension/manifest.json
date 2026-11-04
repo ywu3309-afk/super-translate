@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "超级翻译 · 云端账号版",
+  "version": "0.6.0",
+  "minimum_chrome_version": "114",
+  "description": "超级翻译云端账号版：WhatsApp 专用翻译、通用网页双语翻译，以及网页已有视频字幕翻译。",
+  "permissions": ["storage", "alarms", "activeTab", "scripting"],
+  "host_permissions": ["https://web.whatsapp.com/*", "https://supertranslation.carseatcoverspace.com/*"],
+  "background": {"service_worker": "background.js"},
+  "action": {"default_popup": "popup.html", "default_title": "超级翻译 · 账号与额度"},
+  "options_page": "popup.html",
+  "icons": {"16":"assets/icon-16.png","32":"assets/icon-32.png","48":"assets/icon-48.png","128":"assets/icon-128.png"},
+  "web_accessible_resources": [{"resources":["assets/icon-48.png"],"matches":["https://web.whatsapp.com/*"]}],
+  "content_security_policy": {"extension_pages": "default-src 'self'; script-src 'self'; object-src 'none'; connect-src https://supertranslation.carseatcoverspace.com; base-uri 'none'; form-action 'none'"},
+  "content_scripts": [
+    {"matches": ["https://web.whatsapp.com/*"], "js": ["core.js", "auto-compose.js"], "run_at": "document_start", "all_frames": false},
+    {"matches": ["https://web.whatsapp.com/*"], "js": ["language-picker.js", "content.js"], "css": ["content.css", "language-picker.css"], "run_at": "document_idle", "all_frames": false}
+  ]
+}
