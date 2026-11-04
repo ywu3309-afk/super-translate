@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
   'use strict';
   const M=WorkbenchModel, $=id=>document.getElementById(id), api=window.superDesktop, CRM=window.TrafficCRM;
   const storageKey='super-translate-workbench-v1';
@@ -660,7 +660,7 @@ let autoReplyEnabled=localStorage.getItem('super-translate.auto-reply')==='1',au
     if(original){original.textContent=sameChat&&livePreview.original?'输入原文：'+livePreview.original:'';original.hidden=!original.textContent;}
   }
   function renderLiveReply(){
-    let wrap=$('live-reply');if(!wrap){wrap=node('section','live-reply');wrap.id='live-reply';const card=node('div','live-preview-card'),head=node('div','live-preview-head');head.append(node('span','','实时发送预览（自动生效）'));const status=node('span','live-preview-status','就绪');status.id='trans-status';status.setAttribute('role','status');head.append(status);const preview=node('div','live-preview-box is-placeholder');preview.id='live-preview-box';preview.setAttribute('aria-live','polite');const original=node('div','live-preview-original');original.id='live-preview-original';original.hidden=true;card.append(head,preview,original);wrap.append(card,node('p','live-preview-help'));$('translation-panel').append(wrap);}const help=wrap.querySelector('.live-preview-help');if(help)help.textContent=`直接在 ${currentPlatformName()} 原生聊天框输入任意语言。400ms 后自动识别并翻译；按 Enter 或点击发送时，软件替换为目标语言译文后发送。`;wrap.hidden=!live;paintLivePreview();
+    let wrap=$('live-reply');if(!wrap){wrap=node('section','live-reply');wrap.id='live-reply';const card=node('div','live-preview-card'),head=node('div','live-preview-head');head.append(node('span','','实时发送预览（自动生效）'));const status=node('span','live-preview-status','就绪');status.id='trans-status';status.setAttribute('role','status');head.append(status);const preview=node('div','live-preview-box is-placeholder');preview.id='live-preview-box';preview.setAttribute('aria-live','polite');const original=node('div','live-preview-original');original.id='live-preview-original';original.hidden=true;card.append(head,preview,original);wrap.append(card,node('p','live-preview-help'));$('translation-panel').append(wrap);}const help=wrap.querySelector('.live-preview-help');if(help)help.textContent=`直接在 ${currentPlatformName()} 原生聊天框输入任意语言。120ms 后自动识别并翻译；按 Enter 或点击发送时，软件替换为目标语言译文后发送。`;wrap.hidden=!live;paintLivePreview();
   }
   function setRightPaneCollapsed(value,notify=true){
     rightPaneCollapsed=!!value;document.body.classList.toggle('right-pane-collapsed',live&&rightPaneCollapsed);const toggle=$('right-pane-toggle');toggle.setAttribute('aria-expanded',String(!rightPaneCollapsed));toggle.setAttribute('aria-label',rightPaneCollapsed?'展开右侧工作台':'收起右侧工作台');toggle.title=rightPaneCollapsed?'展开右侧工作台':'收起右侧工作台';toggle.querySelector('span').textContent=rightPaneCollapsed?'❮':'❯';if(live)requestAnimationFrame(()=>api.setBounds(liveBounds()).catch(e=>toast(e.message)));if(notify)toast(rightPaneCollapsed?`右侧工作台已收起，${currentPlatformName()} 区域已扩大。`:'右侧工作台已展开。');
@@ -1292,6 +1292,7 @@ let autoReplyEnabled=localStorage.getItem('super-translate.auto-reply')==='1',au
   if(api){document.querySelector('.rail-unread').hidden=true;document.body.classList.add('connecting-real');api.authStatus().then(status=>{const label=document.querySelector('#user-center-button')||document.querySelector('.operator-avatar');if(status.user){const isCustomer=status.user.accountType==='customer';const quota=status.user.unlimited?'不限量':(status.user.quota===null||status.user.quota===undefined?'待分配':`${status.user.quota} 字`);if(label){label.title=`${status.user.username} · ${isCustomer?'云端客户':'云端/本地管理员'} · ${quota}`;label.setAttribute('aria-label',`用户中心：${status.user.username}，${isCustomer?'客户':'管理员'}，${quota}`);if(label.classList.contains('operator-avatar'))label.textContent=isCustomer?'客':'管';}}return toggleLive();}).finally(()=>document.body.classList.remove('connecting-real'));}
 
 })();
+
 
 
 

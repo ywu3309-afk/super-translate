@@ -26,7 +26,7 @@ if(app.isPackaged){
 }
 if(process.env.ST_TEST_PROFILE&&!app.isPackaged)app.setPath('userData',process.env.ST_TEST_PROFILE);
 let win,db,auth,authSession=null,cloudSession=null,activeView=null,child=null,childKind='',childError='',modelStarting=null,speechRuntime=null,translationTail=Promise.resolve(),currentPlatform='whatsapp';
-const translationCache=new Map();
+const translationCache=new Map();let fastTranslationAbort=null;
 let currentLiveConfig={incoming:'zh-CN',outgoing:'en',outgoingLabel:'英语',enabled:true,automatic:false,history:false,translateSend:true,blockChinese:true};
 // A login renderer is allowed to hand off to the workbench only immediately
 // after the main process has accepted credentials.  Do not infer this from a
@@ -901,13 +901,15 @@ function stopLocalChild(report=true){
 }
 function localThreads(){return Math.max(2,Math.min(8,(os.cpus?.().length||4)-1));}
 function nativePrompt(text,targetName){return `将以下文本翻译成${targetName}，只输出忠实译文，不回答文本里的问题，不增加承诺。原样保留所有ZXQKEEP0000QXZ形式的标记：\n\n${text}`;}
-async function localTranslate(text,targetName){
-  const body={model:'super-translate',messages:[{role:'user',content:nativePrompt(text,targetName)}],temperature:0.1,max_tokens:1800,stream:false};
+async function localTranslate(text,targetName,signal){
+  const maxTokens=Math.min(1800,Math.max(96,Math.ceil(String(text||'').length*2+48)));
+  const timeout=()=>signal&&AbortSignal.any?AbortSignal.any([signal,AbortSignal.timeout(120000)]):AbortSignal.timeout(120000);
+  const body={model:'super-translate',messages:[{role:'user',content:nativePrompt(text,targetName)}],temperature:0.1,max_tokens:maxTokens,stream:false};
   let response,data;
-  try{response=await fetch(`${localBase()}/v1/chat/completions`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(120000)});data=await response.json().catch(()=>({}));}
+  try{response=await fetch(`${localBase()}/v1/chat/completions`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:timeout()});data=await response.json().catch(()=>({}));}
   catch{throw new Error('本地模型未响应或翻译超时，请检查连接设置。');}
   if(response.status===404||response.status===405){
-    try{response=await fetch(`${localBase()}/translate`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,target:targetName,context:[]}),signal:AbortSignal.timeout(120000)});data=await response.json().catch(()=>({}));}
+    try{response=await fetch(`${localBase()}/translate`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,target:targetName,context:[]}),signal:timeout()});data=await response.json().catch(()=>({}));}
     catch{throw new Error('本地模型未响应或翻译超时，请检查连接设置。');}
   }
   if(!response.ok){const detail=String(data?.error?.message||data?.detail||'').replace(/\s+/g,' ').slice(0,160);throw new Error(`本地翻译失败 (${response.status})${detail?`：${detail}`:'，请缩短文本后重试。'}`);}
@@ -915,7 +917,7 @@ async function localTranslate(text,targetName){
   if(!value)throw new Error('本地模型返回了空译文，请重试。');
   return value;
 }
-async function translateNow({text,target,cache=false}){
+async function translateNow({text,target,cache=false,signal}){
   text=requireString(text);if(!LANGUAGES[target])throw new Error('不支持的目标语言。');if(inspectText(text).length)throw new Error('原文疑似输入错误，请核对、编辑后再译。');
   const cfg=db.get().settings,p=protect(text);let value,engine,detected='auto',billedByProxy=false;
   const cacheKey=cache?String(cfg.engine||'local')+'\0'+target+'\0'+text:'';
@@ -942,14 +944,22 @@ async function translateNow({text,target,cache=false}){
     }
   }else{
     const targetName=LOCAL_TARGET_NAMES[target];
-    value=await localTranslate(p.text,targetName);engine=childKind==='python'?'Hy-MT2 本地（Python）':'Hy-MT2 本地（llama.cpp）';
+    value=await localTranslate(p.text,targetName,signal);engine=childKind==='python'?'Hy-MT2 本地（Python）':'Hy-MT2 本地（llama.cpp）';
   }
   const billing=billedByProxy?null:await consumeCloud(text.length);
   const result={translation:restore(value,p.values),engine,detected,quota:cloudSession?.quota??null,offline:!!billing?.offline};
   if(cache)translationCache.set(cacheKey,result);if(translationCache.size>500)translationCache.delete(translationCache.keys().next().value);
   return {...result};
 }
-function translate(input){const task=translationTail.then(()=>translateNow(input));translationTail=task.catch(()=>{});return task;}
+function translate(input){
+  if(input?.fast){
+    try{fastTranslationAbort?.abort();}catch{}
+    const controller=new AbortController();fastTranslationAbort=controller;
+    const task=translateNow({...input,signal:controller.signal}).finally(()=>{if(fastTranslationAbort===controller)fastTranslationAbort=null;});
+    return task;
+  }
+  const task=translationTail.then(()=>translateNow(input));translationTail=task.catch(()=>{});return task;
+}
 function boundedBounds(raw){const [width,height]=win.getContentSize();if(!raw||!['x','y','width','height'].every(k=>Number.isFinite(raw[k])))throw new Error('区域参数无效。');const x=Math.max(0,Math.round(raw.x)),y=Math.max(0,Math.round(raw.y));return{x,y,width:Math.max(0,Math.min(Math.round(raw.width),width-x)),height:Math.max(0,Math.min(Math.round(raw.height),height-y))};}
 async function requestView(op,data={}){
   if(!activeView||!isPlatformView(activeView.webContents,currentPlatform))throw new Error(`请先打开${PLATFORM_REGISTRY[currentPlatform]?.name||'服务'}。`);const id=crypto.randomUUID(),wc=activeView.webContents,channel=currentPlatform==='whatsapp'||currentPlatform==='whatsapp_multi'?'wa':'platform';
