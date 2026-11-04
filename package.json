@@ -1,7 +1,6 @@
 {
   "name": "super-translate",
   "version": "0.7.45",
-  "packageManager": "pnpm@11.25.0",
   "private": true,
   "main": "src/desktop.js",
   "scripts": {
