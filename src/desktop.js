@@ -915,11 +915,11 @@ async function localTranslate(text,targetName){
   if(!value)throw new Error('本地模型返回了空译文，请重试。');
   return value;
 }
-async function translateNow({text,target}){
+async function translateNow({text,target,cache=false}){
   text=requireString(text);if(!LANGUAGES[target])throw new Error('不支持的目标语言。');if(inspectText(text).length)throw new Error('原文疑似输入错误，请核对、编辑后再译。');
   const cfg=db.get().settings,p=protect(text);let value,engine,detected='auto',billedByProxy=false;
-  const cacheKey=String(cfg.engine||'local')+'\0'+target+'\0'+text;
-  const cached=translationCache.get(cacheKey);
+  const cacheKey=cache?String(cfg.engine||'local')+'\0'+target+'\0'+text:'';
+  const cached=cache?translationCache.get(cacheKey):null;
   if(cached)return{...cached};
   preflightCloud(text.length);
   if(cfg.engine==='deepl'){
@@ -946,7 +946,7 @@ async function translateNow({text,target}){
   }
   const billing=billedByProxy?null:await consumeCloud(text.length);
   const result={translation:restore(value,p.values),engine,detected,quota:cloudSession?.quota??null,offline:!!billing?.offline};
-  translationCache.set(cacheKey,result);if(translationCache.size>500)translationCache.delete(translationCache.keys().next().value);
+  if(cache)translationCache.set(cacheKey,result);if(translationCache.size>500)translationCache.delete(translationCache.keys().next().value);
   return {...result};
 }
 function translate(input){const task=translationTail.then(()=>translateNow(input));translationTail=task.catch(()=>{});return task;}

@@ -280,7 +280,7 @@ async function translateComposer(inputEl,text,chatKey){
   const token=++composerToken;composerState={chat:chatKey,original:text,translated:'',status:'translating',error:'',fingerprint};sendComposerPreview('translating');
   const task=(async()=>{
     try{
-      const result=await ipcRenderer.invoke('wa:translate',{text,target:config.outgoing||'en'});const translated=String(result?.translation||'').trim();
+      const result=await ipcRenderer.invoke('wa:translate',{text,target:config.outgoing||'en',cache:true});const translated=String(result?.translation||'').trim();
       if(!composerStillCurrent(inputEl,chatKey,text,token))throw Object.assign(new Error('草稿或聊天已变化，旧译文已丢弃。'),{stale:true});
       if(!translated)throw new Error('翻译结果为空，已阻止发送。');
       composerTranslations.set(cacheKey,translated);if(composerTranslations.size>300)composerTranslations.delete(composerTranslations.keys().next().value);
