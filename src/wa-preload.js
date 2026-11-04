@@ -246,6 +246,7 @@ function isDisplayed(el){
 // chain as a real edit.  Every async result is tied to the exact chat, editor,
 // text and target language that created it; a stale result can never be sent.
 let composerTimer=null,composerToken=0,composerTask=null,composerTaskFingerprint='';
+const composerTranslations=new Map();
 let sendTask=null,isSendingTranslated=false,allowNativeSend=false;
 let composerState={chat:'',original:'',translated:'',status:'idle',error:'',fingerprint:''};
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -272,6 +273,9 @@ async function translateComposer(inputEl,text,chatKey){
   if(config.enabled===false)throw new Error('翻译功能已关闭，请先开启。');
   const fingerprint=composerFingerprint(chatKey,text);
   if(composerState.status==='ready'&&composerState.fingerprint===fingerprint&&composerState.translated)return composerState.translated;
+  const cacheKey=(config.outgoing||'en')+'|'+text;
+  const cached=composerTranslations.get(cacheKey);
+  if(cached){composerState={chat:chatKey,original:text,translated:cached,status:'ready',error:'',fingerprint};sendComposerPreview('ready');return cached;}
   if(composerTask&&composerTaskFingerprint===fingerprint)return composerTask;
   const token=++composerToken;composerState={chat:chatKey,original:text,translated:'',status:'translating',error:'',fingerprint};sendComposerPreview('translating');
   const task=(async()=>{
@@ -279,6 +283,7 @@ async function translateComposer(inputEl,text,chatKey){
       const result=await ipcRenderer.invoke('wa:translate',{text,target:config.outgoing||'en'});const translated=String(result?.translation||'').trim();
       if(!composerStillCurrent(inputEl,chatKey,text,token))throw Object.assign(new Error('草稿或聊天已变化，旧译文已丢弃。'),{stale:true});
       if(!translated)throw new Error('翻译结果为空，已阻止发送。');
+      composerTranslations.set(cacheKey,translated);if(composerTranslations.size>300)composerTranslations.delete(composerTranslations.keys().next().value);
       composerState={chat:chatKey,original:text,translated,status:'ready',error:'',fingerprint};sendComposerPreview('ready');return translated;
     }catch(error){
       if(!error?.stale&&composerStillCurrent(inputEl,chatKey,text,token)){const message=String(error?.message||'实时翻译失败，已阻止发送。').replace(/^Error invoking remote method[^:]+: /,'').slice(0,260);composerState={chat:chatKey,original:text,translated:'',status:'error',error:message,fingerprint};sendComposerPreview('error',{error:message});}
@@ -298,7 +303,7 @@ function scheduleComposerTranslation(inputEl){
   if(!chatKey){const message='请先打开一个 WhatsApp 聊天。';composerState.status='blocked';composerState.error=message;sendComposerPreview('blocked',{error:message});return;}
   if(config.enabled===false){composerState.status='idle';composerState.translated='';sendComposerPreview('idle',{error:'翻译功能已关闭。'});return;}
   if(config.translateSend===false){composerState.status='idle';composerState.translated='';sendComposerPreview('idle');return;}
-  sendComposerPreview('waiting');composerTimer=setTimeout(()=>{composerTimer=null;translateComposer(inputEl,text,chatKey).catch(()=>{});},400);
+  sendComposerPreview('waiting');composerTimer=setTimeout(()=>{composerTimer=null;translateComposer(inputEl,text,chatKey).catch(()=>{});},120);
 }
 function onComposerInput(event){
   if(isSendingTranslated)return;const inputEl=editor();if(!inputEl||!(event.target===inputEl||inputEl.contains(event.target)))return;scheduleComposerTranslation(inputEl);
@@ -849,7 +854,7 @@ ipcRenderer.on('wa:command',async(_,command)=>{
        decorate();ipcRenderer.send('wa:response',{id:command.id,ok:true});return;
      }
     if(command.op==='annotate'){if(command.chat!==chat().key)throw new Error('聊天已变化。');annotation={key:command.chat,...command.annotation};annotate();decorate();ipcRenderer.send('wa:response',{id:command.id,ok:true});return;}
-    if(command.op==='config'){scan();const changed=config.incoming!==command.config.incoming;const flags=config.enabled!==command.config.enabled||config.automatic!==command.config.automatic||config.history!==command.config.history;const composerChanged=config.enabled!==command.config.enabled||config.outgoing!==command.config.outgoing||config.translateSend!==command.config.translateSend||config.blockChinese!==command.config.blockChinese;config={...config,...command.config};if(changed||flags){epoch++;paused=false;failures=0;autoRemaining=config.enabled!==false&&config.automatic?10:0;for(const el of document.querySelectorAll('#main [data-pre-plain-text]')){const entry=entries.get(el);if(entry){if(changed||!entry.done)entry.attempted=false;if(changed||config.enabled===false){entry.done=false;entry.output.textContent='';entry.button.textContent=config.incoming==='zh-CN'?'翻译为中文':'翻译';}}}}if(composerChanged){resetComposerPreview(false);const inputEl=editor();if(cleanDraft(inputEl))scheduleComposerTranslation(inputEl);else resetComposerPreview();}scan();ipcRenderer.send('wa:response',{id:command.id,ok:true});return;}
+    if(command.op==='config'){scan();const changed=config.incoming!==command.config.incoming;const flags=config.enabled!==command.config.enabled||config.automatic!==command.config.automatic||config.history!==command.config.history;const composerChanged=config.enabled!==command.config.enabled||config.outgoing!==command.config.outgoing||config.translateSend!==command.config.translateSend||config.blockChinese!==command.config.blockChinese;config={...config,...command.config};composerTranslations.clear();if(changed||flags){epoch++;paused=false;failures=0;autoRemaining=config.enabled!==false&&config.automatic?10:0;for(const el of document.querySelectorAll('#main [data-pre-plain-text]')){const entry=entries.get(el);if(entry){if(changed||!entry.done)entry.attempted=false;if(changed||config.enabled===false){entry.done=false;entry.output.textContent='';entry.button.textContent=config.incoming==='zh-CN'?'翻译为中文':'翻译';}}}}if(composerChanged){resetComposerPreview(false);const inputEl=editor();if(cleanDraft(inputEl))scheduleComposerTranslation(inputEl);else resetComposerPreview();}scan();ipcRenderer.send('wa:response',{id:command.id,ok:true});return;}
     if(command.op==='open-contact'){const data=await openContactByText(command.contact);ipcRenderer.send('wa:response',{id:command.id,ok:true,data});return;}
     if(command.op==='send'){const data=await sendCurrent();ipcRenderer.send('wa:response',{id:command.id,ok:true,data});return;}
     if(command.op==='fill'){
