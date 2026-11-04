@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Telegram K fixture</title>
+<style>body{font:16px sans-serif}#chat-title{display:block;width:220px;height:24px}.message{display:block;width:340px;min-height:32px;margin:8px 0}.input-message-input{display:block;width:320px;height:40px;border:1px solid #777}.btn-send{display:block;width:90px;height:32px}</style>
+</head>
+<body>
+  <header><div class="chat-info"><div class="person"><span class="title">Fixture Contact</span></div></div></header>
+  <main id="messages"><div class="message"><span class="message-text">Hello from Telegram</span></div></main>
+  <div class="input-message-input" contenteditable="true" role="textbox"></div><button class="btn-send" type="button">Send</button>
+  <output id="sent"></output>
+  <script>
+    const input=document.querySelector('.input-message-input');
+    document.querySelector('.btn-send').addEventListener('click',()=>{document.querySelector('#sent').textContent=input.textContent;input.textContent='';});
+  </script>
+</body>
+</html>

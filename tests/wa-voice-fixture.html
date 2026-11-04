@@ -1,0 +1,82 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Incoming voice fixture - not WhatsApp</title>
+  <style>
+    body{font:14px Arial;margin:0;background:#efeae2}#pane-side{position:fixed;left:0;top:0;bottom:0;width:220px;background:#fff;border-right:1px solid #ddd}#main{margin-left:220px}#main header{height:70px;padding:20px;box-sizing:border-box;background:#edf4fa}#main footer{position:fixed;left:220px;right:0;bottom:0;background:#eee;padding:10px;box-sizing:border-box}[role=textbox]{padding:12px;background:white;border:1px solid #ccc;min-height:20px}.fixture-message{width:470px;margin:28px}.focusable-list-item{display:flex;flex-direction:column}.fixture-message [data-testid="msg-container"]{width:430px;background:#fff;padding:12px;border-radius:10px}.fixture-message.outgoing [data-testid="msg-container"]{background:#d9fdd3;margin-left:auto}.fixture-audio-row{display:flex;align-items:center;gap:10px}.fixture-play{width:36px;height:36px;border:0;border-radius:50%;background:#00a884;color:white}.fixture-wave{letter-spacing:2px;color:#7c8c86}.fixture-meta{font-size:11px;color:#667781;text-align:right}
+  </style>
+</head>
+<body>
+  <aside id="pane-side"><div role="row" aria-selected="true"><span title="+86 132 8265 5871">+86 132 8265 5871</span></div></aside>
+  <main id="main">
+    <header><span title="+86 132 8265 5871">+86 132 8265 5871</span></header>
+    <div id="chat-message-id-probe" data-id="false_8613282655871@c.us_BASE_probe" hidden></div>
+    <!-- Sanitized current WhatsApp DOM shape captured from the live client. -->
+    <div id="incoming-voice-root" class="fixture-message" data-id="3A349595D2B3ECCBF369" data-testid="conv-msg-3A349595D2B3ECCBF369">
+      <div><div><div class="focusable-list-item">
+        <div data-testid="msg-container">
+          <span data-icon="tail-in" data-testid="tail-in"></span>
+          <div class="fixture-audio-row">
+            <button class="fixture-play" type="button" aria-label="播放语音消息"><span aria-label="语音消息">▶</span></button>
+            <span class="fixture-wave">▂▅▇▃▆▂▅▇▂▆</span>
+            <div role="slider" aria-label="语音留言进度滑块"></div>
+            <span data-icon="ptt-status" data-testid="ptt-status"></span>
+          </div>
+          <div class="fixture-meta" data-testid="msg-meta">0:08</div>
+          <div data-testid="addon-bubble-container"></div>
+        </div>
+      </div></div></div>
+    </div>
+    <div class="fixture-message outgoing" data-id="7EF96CB2A3C506C44F10" data-testid="conv-msg-7EF96CB2A3C506C44F10">
+      <div class="focusable-list-item"><div data-testid="msg-container">
+        <span data-icon="tail-out" data-testid="tail-out"></span>
+        <button class="fixture-play" type="button" aria-label="播放语音消息"><span aria-label="语音消息">▶</span></button>
+        <span data-icon="ptt-status" data-testid="ptt-status"></span>
+      </div>
+    </div>
+    </div>
+    <div class="fixture-message" data-id="C9FDE48FE7115E213B10" data-testid="conv-msg-C9FDE48FE7115E213B10">
+      <div class="focusable-list-item"><div data-testid="msg-container"><span data-icon="tail-in" data-testid="tail-in"></span><div data-pre-plain-text="[10:01] Customer: "><span class="selectable-text">Text message only</span></div></div></div>
+    </div>
+    <footer><div id="composer" contenteditable="true" data-tab="10" role="textbox"><p><br></p></div><button id="send" aria-label="发送"><span data-icon="send">Send</span></button></footer>
+  </main>
+  <script>
+    const source=new URLSearchParams(location.search).get('audio')||'';let detachedAudio=null;
+    const audioFor=id=>{if(!source)return'';const value=new URL(source);value.searchParams.set('message',id);return value.href;};
+    document.addEventListener('click',event=>{const button=event.target.closest('.fixture-message:not(.outgoing) .fixture-play'),requested=button?.dataset.audio||source;if(!button||!requested)return;if(!detachedAudio||detachedAudio.src!==new URL(requested,location.href).href){try{detachedAudio?.pause();}catch{}detachedAudio=new Audio(requested);}const label=button.getAttribute('aria-label')||'';if(!label||/^播放/.test(label)){button.setAttribute('aria-label','暂停语音消息');if(detachedAudio.ended)detachedAudio.currentTime=0;detachedAudio.play().catch(()=>{});}else{button.setAttribute('aria-label','播放语音消息');detachedAudio.pause();}},false);
+    window.rebuildVoiceRoot=id=>{const root=document.getElementById(id),copy=root.cloneNode(true);copy.removeAttribute('data-st-voice-key');copy.querySelectorAll('.st-voice-translation').forEach(node=>node.remove());root.replaceWith(copy);return true;};
+    window.rebuildVoiceContainer=id=>{const root=document.getElementById(id),container=root?.querySelector('[data-testid="msg-container"]'),copy=container?.cloneNode(true);if(!container||!copy)return false;copy.querySelectorAll('.st-voice-translation').forEach(node=>node.remove());container.replaceWith(copy);return true;};
+    window.rebuildIncomingVoice=()=>window.rebuildVoiceRoot('incoming-voice-root');
+    // Actual 2026-09-12 runtime: independent conv-msg roots, no data-id or
+    // message-in/out classes, only the first sibling has a direction tail.
+    window.appendTailOnlyVoiceGroup=(direction,ids)=>{
+      let list=document.getElementById('tail-only-message-list');
+      if(!list){list=document.createElement('div');list.id='tail-only-message-list';list.dataset.testid='conversation-panel-messages';list.tabIndex=0;document.querySelector('#main footer').before(list);}
+      const group=document.createElement('div');group.id='tail-only-'+direction;
+      ids.forEach((id,index)=>{
+        const copy=document.getElementById('incoming-voice-root').cloneNode(true);
+        copy.id='incoming-voice-'+id;copy.removeAttribute('data-id');copy.removeAttribute('data-st-voice-key');copy.dataset.testid='conv-msg-'+id;copy.className='fixture-message';
+        copy.querySelectorAll('.st-voice-translation,[data-icon="tail-in"],[data-icon="tail-out"]').forEach(node=>node.remove());
+        if(index===0&&(direction==='in'||direction==='out')){const tail=document.createElement('span');tail.dataset.icon='tail-'+direction;copy.querySelector('[data-testid="msg-container"]').prepend(tail);}
+        copy.querySelector('.fixture-play').dataset.audio=audioFor(id);
+        const branch=document.createElement('div'),row=document.createElement('div');row.setAttribute('role','row');row.tabIndex=-1;row.append(copy);branch.append(row);group.append(branch);
+      });list.append(group);return group.id;
+    };
+    window.setChatProbeId=(direction,suffix)=>{const probe=document.getElementById('chat-message-id-probe');probe.dataset.id=`${direction==='true'?'true':'false'}_8613282655871@c.us_${String(suffix||'A')}_probe`;document.body.append(document.createTextNode(''));return true;};
+    window.setSelectedRow=(enabled,dataId='')=>{const row=document.querySelector('#pane-side [role="row"]');if(!row)return false;if(enabled)row.setAttribute('aria-selected','true');else row.removeAttribute('aria-selected');if(dataId)row.dataset.id=dataId;else row.removeAttribute('data-id');document.body.append(document.createTextNode(''));return true;};
+    window.wrapVoicesInSharedDirectional=(...ids)=>{const roots=ids.map(id=>document.getElementById(id)).filter(Boolean);if(!roots.length)return false;const wrapper=document.createElement('div');wrapper.id='shared-directional-wrapper';wrapper.className='message-in';roots[0].before(wrapper);for(const root of roots){root.classList.remove('message-in');wrapper.append(root);}return true;};
+    window.appendIncomingVoice=(id,sliderOnly=false,nestedSharedId=false)=>{const template=document.getElementById('incoming-voice-root'),copy=template.cloneNode(true),container=copy.querySelector('[data-testid="msg-container"]'),button=copy.querySelector('.fixture-play');copy.id='incoming-voice-'+id;copy.dataset.id=id;copy.dataset.testid='conv-msg-'+id;copy.querySelectorAll('.st-voice-translation').forEach(node=>node.remove());button.dataset.audio=audioFor(id);if(nestedSharedId){copy.classList.add('message-in');copy.removeAttribute('data-id');container.dataset.id=id;button.dataset.id='shared-internal-audio-player';container.querySelectorAll('[role="slider"],[data-icon="ptt-status"],[data-testid="ptt-status"]').forEach(node=>node.remove());}if(sliderOnly){copy.querySelectorAll('[data-icon],[data-testid="ptt-status"]').forEach(node=>{if(node.closest('[data-testid="msg-container"]')&&node.getAttribute('data-icon')!=='tail-in')node.remove();});button.removeAttribute('aria-label');button.firstElementChild?.removeAttribute('aria-label');copy.querySelector('[role="slider"]')?.setAttribute('aria-label','Audio progress');}document.getElementById('main').insertBefore(copy,document.querySelector('#main footer'));copy.scrollIntoView({block:'center'});return copy.id;};
+    window.appendLiveSharedVoiceGroup=(...ids)=>{const template=document.getElementById('incoming-voice-root'),wrapper=document.createElement('div');wrapper.id='live-shared-directional-wrapper';wrapper.className='message-in';wrapper.dataset.id='shared-live-message-cluster';wrapper.dataset.testid='msg-container';for(const id of ids){const copy=template.cloneNode(true),container=copy.querySelector('[data-testid="msg-container"]'),button=copy.querySelector('.fixture-play'),icon=button.firstElementChild;copy.id='incoming-voice-'+id;copy.className='fixture-message';copy.removeAttribute('data-id');copy.removeAttribute('data-testid');copy.removeAttribute('data-st-voice-key');container.removeAttribute('data-testid');container.removeAttribute('data-id');copy.querySelectorAll('.st-voice-translation,[role="slider"],[data-icon*="ptt" i],[data-testid*="ptt" i]').forEach(node=>node.remove());button.removeAttribute('aria-label');button.dataset.id='shared-internal-audio-player';button.dataset.audio=audioFor(id);icon?.removeAttribute('aria-label');icon?.setAttribute('data-icon','audio-play');copy.querySelector('.fixture-meta').textContent='0:05 02:44';wrapper.append(copy);}document.getElementById('main').insertBefore(wrapper,document.querySelector('#main footer'));wrapper.lastElementChild?.scrollIntoView({block:'center'});return wrapper.id;};
+    // Historical rows are present before DOMContentLoaded and therefore stay
+    // manual. Their internal player ids intentionally collide, while their
+    // enclosing WhatsApp message ids remain unique.
+    window.appendIncomingVoice('HIST-SHARED-001',false,true);
+    window.appendIncomingVoice('HIST-SHARED-002',false,true);
+    window.wrapVoicesInSharedDirectional('incoming-voice-HIST-SHARED-001','incoming-voice-HIST-SHARED-002');
+    window.sentCount=0;window.sentMessages=[];const composer=document.getElementById('composer');
+    function commit(){const text=composer.innerText.trim();if(!text)return;window.sentMessages.push(text);window.sentCount++;composer.replaceChildren(document.createElement('p'));composer.firstElementChild.append(document.createElement('br'));composer.dispatchEvent(new InputEvent('input',{bubbles:true,inputType:'deleteContentBackward'}));}
+    document.getElementById('send').addEventListener('click',commit);composer.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.defaultPrevented){event.preventDefault();commit();}});
+  </script>
+</body>
+</html>

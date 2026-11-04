@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>超级聚合SCRM · 本地版</title>
+<style>
+  :root{color-scheme:dark}
+  body{margin:0;height:100vh;display:grid;place-items:center;background:#0b1220;color:#e6edf9;font:14px/1.6 -apple-system,"Segoe UI",sans-serif}
+  .box{width:380px;background:#111a2e;border:1px solid #1e293b;border-radius:14px;padding:24px}
+  h1{font-size:18px;margin:0 0 4px}
+  p{color:#8b9cc0;font-size:12px;margin:0 0 16px}
+  input{width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid #26324a;background:#0f172a;color:#e6edf9;margin-bottom:12px}
+  button{width:100%;padding:10px;border:0;border-radius:8px;background:#6366f1;color:#fff;cursor:pointer}
+  pre{background:#0a1120;border:1px solid #1e293b;border-radius:8px;padding:10px;font-size:11px;max-height:150px;overflow:auto}
+</style>
+</head>
+<body>
+<div class="box">
+  <img src="/assets/logo.png" alt="logo" style="width:72px;height:72px;border-radius:18px;object-fit:cover;display:block;margin:0 auto 14px;box-shadow:0 10px 24px rgba(56,189,248,.25)">
+  <h1 style="text-align:center">超级聚合SCRM</h1>
+  <p style="text-align:center">本地版 · 任意邀请码 · 额度无限</p>
+  <input id="code" value="CHMMVOA64ULC8W" placeholder="邀请码">
+  <button onclick="go()">登 录</button>
+  <pre id="out">等待登录…</pre>
+</div>
+<script>
+async function go(auto) {
+  const code = document.getElementById('code').value.trim();
+  const out = document.getElementById('out');
+  if (!auto) out.textContent = '登录中…';
+  try {
+    const r = await fetch('/api/app/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ invite_code: code }) });
+    const d = await r.json();
+    if (!d.token) { out.textContent = JSON.stringify(d); return; }
+    localStorage.setItem('scrm_app_token', d.token);
+    localStorage.setItem('scrm_invite_code', d.invite_code);
+    localStorage.setItem('scrm_sign_key', d.sign_key || '');
+    localStorage.setItem('scrm_account_sid', d.invite_code || 'acc1');
+    try { window.__scrm_reportAuth && window.__scrm_reportAuth(); } catch (e) {}
+    out.textContent = '登录成功：' + d.invite_code;
+    setTimeout(() => location.href = '/app-main.html', 400);
+  } catch (e) { out.textContent = 'ERR ' + e.message; }
+}
+if (!localStorage.getItem('scrm_app_token')) setTimeout(() => go(true), 300);
+</script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>超级翻译 · 隐私政策</title>
+  <style>
+    :root{color-scheme:light;--blue:#2563eb;--ink:#172033;--muted:#5f6b7a;--line:#e2e8f0;--bg:#f8fafc}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.75 -apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif}
+    main{max-width:880px;margin:0 auto;padding:48px 24px 72px}header{margin-bottom:34px}h1{margin:0 0 8px;font-size:32px;line-height:1.25}h2{margin:32px 0 10px;font-size:21px;line-height:1.35}p{margin:10px 0}ul{padding-left:24px}li{margin:6px 0}.meta,.muted{color:var(--muted)}.notice{padding:16px 18px;border:1px solid #bfdbfe;background:#eff6ff;border-radius:12px}.brand{color:var(--blue);font-weight:700}.back{color:var(--blue);text-decoration:none}.back:hover{text-decoration:underline}footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);font-size:14px;color:var(--muted)}
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="brand">超级翻译 · 浏览器扩展</p>
+    <h1>隐私政策</h1>
+    <p class="meta">生效日期：2026 年 9 月 13 日　|　最后更新：2026 年 9 月 15 日</p>
+  </header>
+
+  <div class="notice"><strong>简要说明：</strong>超级翻译浏览器扩展用于在 WhatsApp Web 页面提供文字翻译和发送前译文替换，并可在用户明确点击“翻译当前网页”后，对当前页面的可见正文及页面已有字幕进行翻译。扩展不会出售个人信息，不会收集浏览历史，也不会要求用户填写翻译服务 API 密钥。翻译功能关闭时，不会向我们的云端发送翻译请求。</div>
+
+  <h2>1. 适用范围</h2>
+  <p>本政策适用于“超级翻译 · 云端账号版”Chrome/Edge Manifest V3 浏览器扩展、其登录与翻译接口，以及本页面所述的相关服务。WhatsApp、Meta、Google、Microsoft、Apple 等第三方服务由各自的隐私政策独立负责。</p>
+
+  <h2>2. 扩展处理的信息</h2>
+  <ul>
+    <li><strong>账号与授权信息：</strong>登录时处理客户账号和密码，用于向云端验证身份。密码仅通过 HTTPS 发送至登录接口；扩展不把密码写入日志或持久化浏览器存储。会话令牌只保存在本次浏览器运行所需的会话存储中，完全退出浏览器后需要重新登录。</li>
+    <li><strong>账号权益信息：</strong>云端返回的账号标识、套餐、字符额度、使用量、到期日和账号状态，用于显示剩余额度、执行额度校验和阻止未授权翻译。</li>
+    <li><strong>用户主动提交的翻译文本：</strong>只有在用户开启云端翻译并触发预览、手动翻译或发送前自动替换时，扩展才会将相应文本、目标语言和必要的会话上下文标识发送到云端翻译接口。扩展不把整页聊天记录上传为单独的数据集。</li>
+    <li><strong>WhatsApp 页面上的本地处理：</strong>扩展在当前 WhatsApp Web 页面中读取完成语言判断和界面增强所需的可见文字、编辑框内容及会话标识。可见文字不会因为安装扩展而自动上传；自动翻译客户消息只有在用户明确开启后才运行。</li>
+    <li><strong>用户主动启用的网页与字幕翻译：</strong>扩展默认不会在普通网站运行。用户点击“翻译当前网页”后，扩展仅在该当前顶层 HTTP(S) 页面处理可见正文和页面已加载、已呈现的字幕文本，并把待翻译的文本片段和目标语言发送到云端。翻译结果和短期去重缓存只保存在该页面/浏览器会话的内存中；停止翻译、关闭页面或会话结束后清除。为把这次授权严格绑定到当前标签页，扩展会在浏览器的临时会话存储中保存当前页面 URL、随机授权值和翻译选项；这些信息不会发送到云端，并在停止、跳转、关闭标签页、退出账号或会话结束时清除。扩展不上传整页 HTML、Cookie、表单值、页面 URL、视频文件或视频音频。</li>
+    <li><strong>技术与安全信息：</strong>我们的托管、网络、反向代理和安全服务可能处理 IP 地址、请求时间、请求路径、状态码、User-Agent、流量大小和安全事件信息；具体保存期限根据服务商的日志和备份策略确定。</li>
+  </ul>
+
+  <h2>3. 我们不会收集或使用的内容</h2>
+  <ul>
+    <li>不出售或出租账号、翻译文本、WhatsApp 联系人或消息内容。</li>
+    <li>不读取与用户主动翻译无关的浏览历史、网页表单、Cookie、支付卡信息或网站内容；通用网页翻译会排除输入框、密码字段、可编辑区、代码块、隐藏节点和嵌入式框架。</li>
+    <li>不要求或收集 WhatsApp 密码、二维码、关联设备密钥、Cookie 或浏览器访问令牌。</li>
+    <li>不将翻译文本用于广告画像、跨站跟踪或训练通用模型。</li>
+  </ul>
+
+  <h2>4. 数据用途与处理依据</h2>
+  <p>处理上述信息仅用于：提供登录和会话管理、执行用户请求的 WhatsApp、网页或字幕翻译、计算和扣减字符额度、显示服务状态、保障安全、防止重复请求与滥用、排查故障，以及履行法律义务。用户可随时关闭云端翻译，或在当前网页恢复原文并停止字幕翻译。停止操作会取消尚未开始的本地任务；已提交至云端的翻译请求可能已经处理并计入字符用量。</p>
+
+  <h2>5. 第三方服务与共享</h2>
+  <p>为提供云端服务，我们会把用户主动提交的翻译请求发送给超级翻译服务端及其配置的翻译提供商。翻译提供商只接收完成该请求所需的文本和目标语言。我们不会把密码、Cookie 或 Authorization 内容写入应用日志或提供给无关第三方。</p>
+  <p>平台日志与应用日志是两类不同记录：托管平台、网络、反向代理或安全服务可能独立产生第 2 节所列的技术日志；超级翻译应用日志仅用于运行、安全和故障排查，并按最小化原则避免记录请求正文、Cookie、密码和 Authorization 值。除非法律要求、用户明确授权或为提供用户请求的服务所必需，我们不会向其他第三方披露个人信息。</p>
+
+  <h2>6. 保存期限与删除</h2>
+  <p>会话令牌在浏览器会话结束或用户点击“退出”后清除。账号权益和必要的服务记录只在提供服务、结算、审计、安全和法律要求所需期间保留。平台访问日志、安全日志和备份的具体期限由相应服务商的策略决定，我们不会在未核实前承诺固定天数。</p>
+  <p>用户可以在扩展中退出账号并清除本地会话；如需查询、更正或删除与账号关联的数据，请通过超级翻译官网的客服入口提交请求，并说明账号和请求范围。我们会在核验请求人身份后按适用法律处理。</p>
+
+  <h2>7. 安全措施</h2>
+  <p>扩展与云端接口使用 HTTPS；扩展采用 Manifest V3 内容安全策略，限制可连接的服务域名；服务端对账号授权、额度和请求来源进行校验，并避免在错误响应中回显内部信息。没有任何网络传输或存储方式可以保证绝对安全，用户仍应妥善保护自己的账号。</p>
+
+  <h2>8. 权限说明</h2>
+  <ul>
+    <li><strong>storage：</strong>保存扩展设置、语言偏好和必要的本地会话状态。</li>
+    <li><strong>alarms：</strong>执行受限的账号状态/心跳维护，不用于广告或后台浏览。</li>
+    <li><strong>activeTab：</strong>仅在用户点击扩展按钮后，临时授权当前网页使用通用网页/字幕翻译；不授予持续读取所有网站的权限。</li>
+    <li><strong>scripting：</strong>在用户明确授权的当前网页中注入本地打包的翻译脚本和样式；不会从远程服务器加载可执行代码。</li>
+    <li><strong>web.whatsapp.com：</strong>在用户打开 WhatsApp Web 时提供翻译和输入框增强。</li>
+    <li><strong>supertranslation.carseatcoverspace.com：</strong>连接超级翻译登录、额度和翻译接口。</li>
+  </ul>
+
+  <h2>9. 未成年人</h2>
+  <p>本服务面向具备相应民事行为能力的用户。未成年人应在监护人同意和指导下使用。</p>
+
+  <h2>10. 政策变更与联系方式</h2>
+  <p>我们会在本页面更新政策版本和生效日期。重大变更会在扩展或官网中以适当方式提示。隐私问题、数据请求或安全报告请通过<a class="back" href="https://supertranslation.carseatcoverspace.com/" rel="noopener">超级翻译官网</a>的客服入口提交。</p>
+
+  <footer><a class="back" href="/">返回超级翻译官网</a><br>本产品与 WhatsApp、Meta、Google、Microsoft、Apple 官方无隶属关系。</footer>
+</main>
+</body>
+</html>

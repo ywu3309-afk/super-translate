@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>事件管理 · 超级聚合</title>
+<link rel="stylesheet" href="/shared.css">
+<style>
+  body{background:var(--bg)}
+  .wrap{max-width:1200px;margin:0 auto;padding:22px 20px 60px}
+  .head{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+  .head h1{font-size:20px;margin:0}
+  .head .sp{flex:1}
+  .tabs{display:flex;gap:6px;border-bottom:1px solid var(--line);margin-bottom:14px;flex-wrap:wrap}
+  .tab{padding:9px 14px;border-radius:8px 8px 0 0;color:var(--muted);cursor:pointer;font-size:13px}
+  .tab.on{background:var(--panel);color:#fff;box-shadow:inset 0 -2px 0 var(--brand)}
+  .pane{display:none}.pane.on{display:block}
+  .muted{color:var(--muted);font-size:12px}
+  dialog{background:#141c2d;color:var(--text);border:1px solid var(--line);border-radius:14px;width:640px;max-width:94vw;padding:18px}
+  dialog label{display:flex;flex-direction:column;gap:4px;color:var(--muted);font-size:12px;margin-top:8px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .ok{color:var(--ok)}.bad{color:var(--bad)}
+</style>
+</head>
+<body data-help="events">
+<div class="wrap">
+  <div class="head"><h1>事件管理</h1><span class="muted">广告回传配置、日志与自检</span><span class="sp"></span>
+    <button class="btn ghost" onclick="dlgGuide.showModal()">新手指引</button>
+    <a class="btn ghost" href="/admin/">返回后台</a><button class="btn" onclick="editEvent(null)">＋ 新增回传事件</button></div>
+
+  <div class="tabs">
+    <div class="tab on" data-p="events">回传事件</div>
+    <div class="tab" data-p="logs">回传日志</div>
+    <div class="tab" data-p="manual">手动回传</div>
+    <div class="tab" data-p="diag">一键诊断</div>
+    <div class="tab" data-p="aud">受众同步</div>
+  </div>
+
+  <div class="pane on" id="p-events">
+    <div class="panel"><table><thead><tr><th>事件名</th><th>平台</th><th>像素 / 事件</th><th>关联落地页</th><th>状态</th><th style="text-align:right">操作</th></tr></thead><tbody id="evRows"></tbody></table></div>
+  </div>
+
+  <div class="pane" id="p-logs">
+    <div class="panel"><h2>回传日志</h2><table><thead><tr><th>时间</th><th>地址</th><th>状态</th><th>结果</th></tr></thead><tbody id="logRows"></tbody></table></div>
+    <div class="panel"><h2>最近转化 / 点击</h2><table><thead><tr><th>时间</th><th>类型</th><th>代码</th><th>动作</th></tr></thead><tbody id="visitRows"></tbody></table></div>
+  </div>
+
+  <div class="pane" id="p-manual">
+    <div class="panel">
+      <div class="toolbar"><select id="mEvent" style="max-width:280px"></select><input id="mClick" placeholder="click_id（可空）" style="max-width:220px"><button class="btn" onclick="manualSend()">发送测试回传</button></div>
+      <div id="mResult" class="muted">选一个事件，点发送；结果会写进回传日志。</div>
+    </div>
+  </div>
+
+  <div class="pane" id="p-diag">
+    <div class="panel"><div class="toolbar"><button class="btn" onclick="diagnose()">开始诊断</button><span class="muted" id="diagTime"></span></div><table><thead><tr><th>检查项</th><th>结果</th><th>说明</th></tr></thead><tbody id="diagRows"><tr><td colspan="3" class="muted">点「开始诊断」</td></tr></tbody></table></div>
+    <div class="panel"><h2>最近一条回传</h2><div id="diagLast" class="muted">-</div></div>
+  </div>
+
+  <div class="pane" id="p-aud">
+    <div class="panel"><div class="toolbar"><button class="btn ghost" onclick="loadAud()">刷新</button><button class="btn" onclick="addAud()">＋ 新建受众</button><input id="mTok" placeholder="Meta access_token" style="flex:1;min-width:220px"><input id="mAcc" placeholder="act_123456" style="max-width:160px"><button class="btn ghost" onclick="saveMeta()">保存配置</button></div>
+      <div class="muted" style="margin-bottom:8px">同步会把客户表里的邮箱/手机号做 SHA256 后上传到 Meta 自定义受众；没配置令牌会明确提示未配置。</div>
+      <table><thead><tr><th>受众名</th><th>平台</th><th>规模</th><th>远端 ID</th><th>广告账户</th><th>同步时间</th><th>最近错误</th><th style="text-align:right">操作</th></tr></thead><tbody id="audRows"></tbody></table></div>
+  </div>
+</div>
+
+<dialog id="dlgGuide">
+  <b>新手指引 · 广告回传</b>
+  <p class="muted">广告回传就是：访客在你落地页做了动作（点按钮、提交表单），系统自动告诉广告平台“这条广告带来了一次转化”。</p>
+  <ol style="color:#cbd7f0;font-size:13px;line-height:1.9;padding-left:20px">
+    <li>新建回传事件：填事件名、平台、像素 ID 和令牌</li>
+    <li>关联落地页/回传地址：地址里可以用 <code>{click_id}</code></li>
+    <li>保存后点「手动回传」发一次测试，确认日志是成功</li>
+    <li>把回传链接放进广告后台，之后每次转化会自动记录</li>
+  </ol>
+  <div style="display:flex;justify-content:flex-end"><button class="btn" onclick="dlgGuide.close()">知道了</button></div>
+</dialog>
+
+<dialog id="dlg">
+  <b id="dlgTitle">新增回传事件</b>
+  <div class="grid">
+    <label>事件名<input id="f_name"></label>
+    <label>平台<select id="f_platform"><option>TrafficStars</option><option>Meta</option><option>Google</option><option>TikTok</option></select></label>
+    <label>像素 ID<input id="f_pixel_id"></label>
+    <label>访问令牌<input id="f_token"></label>
+    <label>回传事件<select id="f_event_type"><option>Lead</option><option>Purchase</option><option>Contact</option><option>CompleteRegistration</option></select></label>
+    <label>关联落地页<select id="f_landing"></select></label>
+    <label>状态<select id="f_status"><option value="active">启用</option><option value="paused">停用</option></select></label>
+    <label>回传地址（可用 {click_id}）<input id="f_postback_url"></label>
+  </div>
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button class="btn ghost" onclick="dlg.close()">取消</button><button class="btn" onclick="saveEvent()">保存</button></div>
+</dialog>
+
+<script src="/help.js"></script>
+<script>
+const token = localStorage.getItem('admin_token') || '';
+if (!token) location.href = '/admin/';
+const $ = (id) => document.getElementById(id);
+const dlg = $('dlg');
+const dlgGuide = $('dlgGuide');
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const fmt = (t) => t ? new Date(t).toLocaleString('zh-CN', { hour12: false }) : '';
+let events = [], pages = [], editing = null;
+async function api(path, method = 'GET', body) {
+  const r = await fetch('/api/admin' + path, { method, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: body == null ? null : JSON.stringify(body) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+  return j;
+}
+function toast(m) { const d = document.createElement('div'); d.textContent = m; d.style.cssText = 'position:fixed;left:50%;top:20px;transform:translateX(-50%);background:#1c2740;border:1px solid #2b3850;padding:9px 16px;border-radius:10px;z-index:99'; document.body.appendChild(d); setTimeout(() => d.remove(), 2200); }
+async function load() {
+  const [e, p] = await Promise.all([api('/entities/events?limit=200'), api('/entities/pages?limit=200')]);
+  events = e.rows || []; pages = p.rows || [];
+  $('evRows').innerHTML = events.length ? events.map((x) => `<tr><td>${esc(x.name)}</td><td>${esc(x.platform)}</td><td class="muted">${esc(x.pixel_id || '-')} / ${esc(x.event_type || '-')}</td><td>${esc(x.landing || '-')}</td><td>${x.status === 'active' ? '<span class="pill">启用</span>' : '<span class="pill">停用</span>'}</td><td style="text-align:right"><button class="btn ghost" onclick="editEvent(${x.id})">编辑</button> <button class="btn ghost" onclick="delEvent(${x.id})">删除</button></td></tr>`).join('') : '<tr><td colspan="6" class="muted">还没有回传事件，点右上角新增</td></tr>';
+  $('mEvent').innerHTML = events.map((x) => `<option value="${x.id}">${esc(x.name)} · ${esc(x.platform)}</option>`).join('') || '<option value="">没有事件</option>';
+}
+function editEvent(id) {
+  editing = id ? events.find((x) => x.id === id) : null;
+  $('dlgTitle').textContent = id ? '编辑回传事件' : '新增回传事件';
+  const v = editing || { platform: 'TrafficStars', event_type: 'Lead', status: 'active' };
+  for (const k of ['name', 'platform', 'pixel_id', 'token', 'event_type', 'postback_url']) $('f_' + k).value = v[k] || '';
+  $('f_status').value = v.status || 'active';
+  $('f_landing').innerHTML = '<option value="">不关联</option>' + pages.map((p) => `<option value="${esc(p.slug)}" ${v.landing === p.slug ? 'selected' : ''}>${esc(p.slug)} · ${esc(p.name)}</option>`).join('');
+  dlg.showModal();
+}
+async function saveEvent() {
+  const body = {};
+  for (const k of ['name', 'platform', 'pixel_id', 'token', 'event_type', 'postback_url', 'status']) body[k] = $('f_' + k).value;
+  body.landing = $('f_landing').value;
+  if (!body.name.trim()) return toast('事件名必填');
+  try {
+    if (editing) await api('/entities/events/' + editing.id, 'PUT', body);
+    else await api('/entities/events', 'POST', body);
+    dlg.close(); toast('已保存'); load();
+  } catch (e) { toast('保存失败：' + e.message); }
+}
+async function delEvent(id) { if (!confirm('删除事件 #' + id + '？')) return; await api('/entities/events/' + id, 'DELETE'); load(); }
+async function loadLogs() {
+  const r = await api('/ads/logs');
+  $('logRows').innerHTML = r.rows.length ? r.rows.map((x) => `<tr><td class="muted">${fmt(x.created_at)}</td><td class="muted">${esc(String(x.url).slice(0, 70))}</td><td>${x.status}</td><td>${x.ok ? '<span class="ok">成功</span>' : '<span class="bad">' + esc(x.error || '失败') + '</span>'}</td></tr>`).join('') : '<tr><td colspan="4" class="muted">还没有回传日志</td></tr>';
+  $('visitRows').innerHTML = r.visits.length ? r.visits.map((x) => `<tr><td class="muted">${fmt(x.created_at)}</td><td>${esc(x.kind)}</td><td>${esc(x.code)}</td><td>${esc(x.action)}</td></tr>`).join('') : '<tr><td colspan="4" class="muted">还没有转化/点击</td></tr>';
+}
+async function manualSend() {
+  const id = Number($('mEvent').value);
+  if (!id) return toast('先建一个事件');
+  $('mResult').textContent = '发送中…';
+  try {
+    const r = await api('/ads/manual', 'POST', { event_id: id, click_id: $('mClick').value.trim() });
+    $('mResult').innerHTML = r.ok ? `<span class="ok">成功</span> HTTP ${r.status}<div class="muted">${esc(r.url)}</div>` : `<span class="bad">失败</span> HTTP ${r.status}<div class="muted">${esc(r.url)}</div>`;
+    toast(r.ok ? '回传成功' : '回传失败');
+  } catch (e) { $('mResult').textContent = '失败：' + e.message; }
+}
+async function diagnose() {
+  const r = await api('/ads/diagnose');
+  $('diagRows').innerHTML = r.checks.map((c) => `<tr><td>${esc(c.name)}</td><td>${c.ok ? '<span class="ok">通过</span>' : '<span class="bad">未通过</span>'}</td><td class="muted">${esc(c.detail)}</td></tr>`).join('');
+  $('diagLast').textContent = r.last ? `${fmt(r.last.created_at)} · HTTP ${r.last.status} · ${r.last.url}` : '还没有回传记录';
+  $('diagTime').textContent = '诊断时间 ' + new Date().toLocaleTimeString('zh-CN', { hour12: false });
+}
+async function loadAud() {
+  const r = await api('/entities/audiences?limit=200');
+  $('audRows').innerHTML = (r.rows || []).length ? r.rows.map((x) => `<tr><td>${esc(x.name)}</td><td>${esc(x.platform || '-')}</td><td>${esc(x.size || 0)}</td><td class="muted">${esc(x.remote_id || '-')}</td><td class="muted">${esc(x.ad_account || '-')}</td><td class="muted">${esc(x.synced_at || '-')}</td><td class="bad">${esc(x.last_error || '')}</td><td style="text-align:right"><button class="btn ghost" onclick="syncAud(${x.id})">同步到 Meta</button> <button class="btn ghost" onclick="delAud(${x.id})">删除</button></td></tr>`).join('') : '<tr><td colspan="8" class="muted">还没有受众，点「新建受众」</td></tr>';
+}
+async function addAud() {
+  const name = prompt('受众名称（例如：WhatsApp 咨询客户）');
+  if (!name) return;
+  const platform = prompt('平台（Meta / TikTok）', 'Meta') || 'Meta';
+  await api('/entities/audiences', 'POST', { name, platform });
+  loadAud();
+}
+async function delAud(id) { if (!confirm('删除受众 #' + id + '？')) return; await api('/entities/audiences/' + id, 'DELETE'); loadAud(); }
+async function saveMeta() {
+  const token = $('mTok').value.trim();
+  const acc = $('mAcc').value.trim();
+  if (token) await api('/meta/token', 'POST', { token });
+  if (acc) await api('/meta/ad-account', 'POST', { account: acc });
+  toast('配置已保存');
+}
+async function syncAud(id) {
+  const acc = $('mAcc').value.trim();
+  try {
+    const r = await api('/ads/audience/sync', 'POST', { id, ad_account: acc || undefined });
+    toast('同步成功：上传 ' + r.uploaded + ' 条，受众 ' + r.remote_id);
+    loadAud();
+  } catch (e) { toast('同步失败：' + e.message); }
+}
+document.querySelectorAll('.tab').forEach((t) => t.onclick = () => {
+  document.querySelectorAll('.tab').forEach((x) => x.classList.remove('on'));
+  document.querySelectorAll('.pane').forEach((x) => x.classList.remove('on'));
+  t.classList.add('on'); $('p-' + t.dataset.p).classList.add('on');
+  if (t.dataset.p === 'logs') loadLogs();
+  if (t.dataset.p === 'aud') loadAud();
+});
+load().catch((e) => toast('加载失败：' + e.message));
+</script>
+</body>
+</html>

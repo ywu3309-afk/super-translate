@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>身份图谱 · 超级聚合</title>
+<link rel="stylesheet" href="/shared.css">
+<style>body{background:var(--bg)}.wrap{max-width:1200px;margin:0 auto;padding:22px 20px 60px}.head{display:flex;gap:10px;align-items:center;margin-bottom:14px}.head h1{font-size:20px;margin:0}.head .sp{flex:1}.muted{color:var(--muted);font-size:12px}</style>
+</head><body data-help="identity"><div class="wrap">
+<div class="head"><h1>身份图谱</h1><span class="muted">把同一 IP + 浏览器的访问合成一个身份</span><span class="sp"></span><a class="btn ghost" href="/admin/">返回后台</a></div>
+<div class="cards" id="cards"></div>
+<div class="panel"><table><thead><tr><th>身份</th><th>IP</th><th>浏览器</th><th>访问次数</th><th>首次</th><th>最近</th></tr></thead><tbody id="rows"><tr><td colspan="6" class="muted">加载中…</td></tr></tbody></table></div>
+</div><script src="/help.js"></script><script>
+const token=localStorage.getItem('admin_token')||'';if(!token)location.href='/admin/';
+const esc=(s)=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=(t)=>t?new Date(t).toLocaleString('zh-CN',{hour12:false}):'';
+async function api(p){const r=await fetch('/api/admin'+p,{headers:{Authorization:'Bearer '+token}});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||('HTTP '+r.status));return j;}
+(async()=>{const r=await api('/identity/summary');
+ document.getElementById('cards').innerHTML=`<div class="card"><div class="k">身份总数</div><div class="v">${r.total}</div></div><div class="card"><div class="k">多设备/回访</div><div class="v">${r.multi}</div></div><div class="card"><div class="k">留资人数</div><div class="v">${r.leads}</div></div>`;
+ document.getElementById('rows').innerHTML=r.rows.length?r.rows.map(x=>`<tr><td>${x.key}</td><td>${esc(x.ip)}</td><td class="muted">${esc(String(x.ua||'').slice(0,50))}</td><td>${x.visits}</td><td class="muted">${fmt(x.first)}</td><td class="muted">${fmt(x.last)}</td></tr>`).join(''):'<tr><td colspan="6" class="muted">这段时间没有记录</td></tr>';
+})().catch(e=>document.getElementById('rows').innerHTML='<tr><td colspan="6" class="muted">加载失败：'+esc(e.message)+'</td></tr>');
+</script></body></html>

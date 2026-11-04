@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><title>WhatsApp country-list fixture</title></head>
+<body>
+  <main id="main">
+    <header><span title="+49 176 68988346">+49 176 68988346</span></header>
+    <div data-id="false_4917668988346@c.us_header"></div>
+    <div id="pane-side" aria-label="聊天列表">
+      <div role="row"><span title="+351 932 046 152">+351 932 046 152</span><span>preview</span></div>
+      <div role="row"><span title="+49 1577 5094147">+49 1577 5094147</span><span>preview</span></div>
+      <div role="row"><span title="+420 602 123 456">+420 602 123 456</span><span>preview</span></div>
+      <div role="row"><span title="+251 92 562 6363">+251 92 562 6363</span><span>preview</span></div>
+      <div data-testid="cell-frame-container"><span title="+86 137 0000 0000">+86 137 0000 0000</span><span>preview</span></div>
+      <div role="row"><span title="WhatsApp Business">WhatsApp Business</span><span>contains 123 but no international phone</span></div>
+    </div>
+    <footer><div contenteditable="true" data-tab="10" role="textbox"><p><br></p></div></footer>
+  </main>
+  <script>
+    window.addCountryRow=()=>{const row=document.createElement('div');row.setAttribute('role','row');const span=document.createElement('span');span.title='+971 50 123 4567';span.textContent=span.title;row.append(span);document.querySelector('#pane-side').append(row);};
+  </script>
+</body>
+</html>

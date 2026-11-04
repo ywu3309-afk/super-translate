@@ -1,0 +1,20 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>boot</title></head>
+<body>
+<script>
+// 仅本地开发用：写入会话后跳转，方便截图/联调
+const q = new URLSearchParams(location.search);
+const token = q.get('token') || '';
+const realm = q.get('realm') === 'admin' ? 'admin' : 'client';
+if (token) localStorage.setItem(realm === 'admin' ? 'admin_token' : 'client_token', token);
+if (q.get('invite')) localStorage.setItem('scrm_invite_code', q.get('invite'));
+let to = q.get('to') || (realm === 'admin' ? '/admin/' : '/client/');
+if (q.get('helpdemo')) {
+  const i = to.indexOf('#');
+  const base = i >= 0 ? to.slice(0, i) : to;
+  const hash = i >= 0 ? to.slice(i) : '';
+  to = base + (base.includes('?') ? '&' : '?') + 'helpdemo=1' + hash;
+}
+location.replace(to);
+</script>
+</body></html>

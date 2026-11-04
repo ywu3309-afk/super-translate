@@ -1,0 +1,148 @@
+name: Windows Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-publish:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Install browser extension Chromium runtime
+        shell: pwsh
+        run: npx playwright install chromium
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: '${{ runner.temp }}\pw-browsers'
+      - name: Verify embedded runtime manifest
+        run: npm run test:runtime-integrity
+      - name: Verify unread notifications
+        run: npm run test:unread
+      - name: Verify non-WhatsApp platform runtime
+        run: npm run test:platform-runtime
+      - name: Verify source-language agnostic WhatsApp send
+        run: npm run test:wa-live-intercept
+      - name: Verify customer device heartbeat
+        run: npm run test:customer-heartbeat
+      - name: Verify WhatsApp contact country labels
+        run: npm run test:wa-country-list
+      - name: Verify incoming WhatsApp voice continuity
+        run: npm run test:incoming-voice
+        env:
+          # The release runner does not carry the customer's multi-GB D-drive
+          # speech model. Exercise the complete voice queue/media/IPC path
+          # against the test's loopback SenseVoice-compatible fixture instead.
+          ST_TEST_SPEECH_SERVER: '1'
+      - name: Verify browser extension core and contact routing
+        run: npm run test:browser-extension-core
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: '${{ runner.temp }}\pw-browsers'
+      - name: Verify browser extension UI
+        run: npm run test:browser-extension-ui
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: '${{ runner.temp }}\pw-browsers'
+      - name: Verify browser extension native WhatsApp composer
+        run: npm run test:browser-extension-auto
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: '${{ runner.temp }}\pw-browsers'
+      - name: Verify browser extension generic web and subtitles
+        run: npm run test:browser-extension-web-security && npm run test:browser-extension-web && npm run test:browser-extension-subtitles
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: '${{ runner.temp }}\pw-browsers'
+      - name: Build installer
+        # Build on the runner, then let the next step publish with GITHUB_TOKEN.
+        # Passing --publish never prevents electron-builder from attempting an
+        # implicit upload that would require a separate GH_TOKEN.
+        run: npm run build -- --publish never
+      - name: Verify packaged Whisper worker bytes
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $worker = Join-Path $PWD 'dist/win-unpacked/resources/runtime/whisper_worker.py'
+          $expectedSize = 4794
+          $expectedSha256 = '3CDF11E57EFDD17DB38979D546A6C490A007346238D4B6D494DE34D369DBE273'
+          if (-not (Test-Path -LiteralPath $worker -PathType Leaf)) {
+            throw "构建产物缺少 Whisper worker：$worker"
+          }
+          $bytes = [IO.File]::ReadAllBytes($worker)
+          if ($bytes.Length -ne $expectedSize) {
+            throw "Whisper worker 大小不匹配：实际 $($bytes.Length)，期望 $expectedSize。"
+          }
+          for ($i = 0; $i -lt $bytes.Length; $i++) {
+            if ($bytes[$i] -eq 13) {
+              throw 'Whisper worker 包含 CR 换行字节；请检查 .gitattributes 与 Windows checkout。'
+            }
+          }
+          $actualSha256 = (Get-FileHash -LiteralPath $worker -Algorithm SHA256).Hash.ToUpperInvariant()
+          if ($actualSha256 -ne $expectedSha256) {
+            throw "Whisper worker SHA-256 不匹配：实际 $actualSha256，期望 $expectedSha256。"
+          }
+          Write-Host "Packaged Whisper worker verified: $($bytes.Length) bytes, SHA-256 $actualSha256 (LF-only)."
+      - name: Verify packaged hardening
+        shell: pwsh
+        run: |
+          $env:ST_REQUIRE_PACKAGED_HARDENING = '1'
+          npm run test:package-hardening
+      - name: Smoke-test packaged login window
+        run: npm run test:packaged
+      - name: Reject packaged Chromium remote debugging
+        run: npm run test:packaged-debug
+      - name: Verify binary-only release contents
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $packageVersion = (Get-Content 'package.json' -Raw | ConvertFrom-Json).version
+          $expectedInstaller = "SuperTranslate-Personal-Setup-$packageVersion.exe"
+          $installers = @(Get-ChildItem 'dist/SuperTranslate-Personal-Setup-*.exe' -File -ErrorAction SilentlyContinue)
+          $blockmaps = @(Get-ChildItem 'dist/SuperTranslate-Personal-Setup-*.exe.blockmap' -File -ErrorAction SilentlyContinue)
+          $latestFiles = @(Get-ChildItem 'dist/latest.yml' -File -ErrorAction SilentlyContinue)
+          if ($installers.Count -ne 1 -or $blockmaps.Count -ne 1 -or $latestFiles.Count -ne 1) {
+            throw '发布目录必须恰好包含一个安装包、一个 blockmap 和一个 latest.yml。'
+          }
+          if ($installers[0].Name -ne $expectedInstaller -or $blockmaps[0].Name -ne "$expectedInstaller.blockmap") {
+            throw "构建版本与发布标签不匹配：期望 $expectedInstaller。"
+          }
+          if ((Get-Content $latestFiles[0].FullName -Raw) -notmatch "(?m)^version:\s*$([regex]::Escape($packageVersion))\s*$") {
+            throw 'latest.yml 的版本号与 package.json 不匹配。'
+          }
+          if ($env:GITHUB_REF -like 'refs/tags/*' -and $env:GITHUB_REF_NAME -ne "v$packageVersion") {
+            throw "发布标签与 package.json 不匹配：期望 v$packageVersion。"
+          }
+          # The build must not leave any source/archive ZIP in the release
+          # directory. Keep this generic so a future archive naming change
+          # cannot accidentally expose source or test material.
+          $zipArchives = @(Get-ChildItem 'dist/*.zip' -File -ErrorAction SilentlyContinue)
+          if ($zipArchives.Count -gt 0) {
+            $zipArchives | Remove-Item -Force
+            throw '检测到 ZIP 归档，已删除并终止发布。Release 仅允许发布二进制安装包。'
+          }
+          $required = @($installers + $blockmaps + $latestFiles)
+          Write-Host 'Binary-only release check passed:'
+          $required | ForEach-Object { Write-Host (" - " + $_.Name) }
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          repository: ywu3309-afk/super-translate
+          token: ${{ secrets.RELEASE_REPO_TOKEN }}
+          files: |
+            dist/SuperTranslate-Personal-Setup-*.exe
+            dist/SuperTranslate-Personal-Setup-*.exe.blockmap
+            dist/latest.yml
+          # Fine-grained repository tokens can upload/create releases but may
+          # be denied the separate generate-notes API. Keep release creation
+          # compatible with the least-privilege Contents: read/write token.
+          generate_release_notes: false

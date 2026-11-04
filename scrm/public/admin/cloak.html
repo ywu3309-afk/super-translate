@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>斗篷管理 · 超级聚合</title>
+<link rel="stylesheet" href="/shared.css">
+<style>
+  body{background:var(--bg)}
+  .wrap{max-width:1240px;margin:0 auto;padding:22px 20px 60px}
+  .head{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+  .head h1{font-size:20px;margin:0}
+  .head .sp{flex:1}
+  .fp{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-lg);padding:14px;margin-bottom:14px}
+  .fp div span{display:block;color:var(--muted);font-size:11px;margin-bottom:3px}
+  .fp div b{font-size:13px;font-weight:600}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-lg);padding:12px 14px}
+  .kpi b{display:block;font-size:22px;font-variant-numeric:tabular-nums}
+  .kpi span{color:var(--muted);font-size:12px}
+  .tabs{display:flex;gap:6px;border-bottom:1px solid var(--line);margin-bottom:14px;flex-wrap:wrap}
+  .tab{padding:9px 14px;border-radius:8px 8px 0 0;color:var(--muted);cursor:pointer;font-size:13px}
+  .tab.on{background:var(--panel);color:#fff;box-shadow:inset 0 -2px 0 var(--brand)}
+  .pane{display:none}.pane.on{display:block}
+  .rule-cond{color:var(--muted);font-size:12px}
+  .chip{font-size:12px;padding:3px 9px;border-radius:999px;border:1px solid var(--line2);color:var(--muted)}
+  .chip.ok{color:var(--ok);border-color:rgba(52,211,153,.45)}
+  .chip.bad{color:var(--bad);border-color:rgba(248,113,113,.45)}
+  dialog{background:#141c2d;color:var(--text);border:1px solid var(--line);border-radius:14px;width:900px;max-width:94vw;max-height:90vh;overflow:auto;padding:0}
+  dialog .dh{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#141c2d;z-index:2}
+  dialog .dh b{font-size:15px}
+  dialog .dh .sp{flex:1}
+  dialog .body{padding:16px 18px 22px}
+  .sec{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:12px;background:var(--panel2)}
+  .sec h3{margin:0 0 10px;font-size:13px;color:#cbd7f0}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+  .grid label{display:flex;flex-direction:column;gap:4px;color:var(--muted);font-size:12px}
+  .grid input,.grid select,.grid textarea{padding:7px 9px}
+  .checks{display:flex;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:12px}
+  .checks label{display:flex;gap:5px;align-items:center}
+  .muted{color:var(--muted);font-size:12px}
+  .foot{display:flex;gap:10px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--line);position:sticky;bottom:0;background:#141c2d}
+</style>
+</head>
+<body data-help="cloak">
+<div class="wrap">
+  <div class="head">
+    <h1>斗篷管理</h1>
+    <span class="sp"></span>
+    <button class="btn ghost" onclick="loadAll()">刷新</button>
+    <button class="btn" onclick="editRule(null)">＋ 添加规则</button>
+  </div>
+
+  <div class="fp" id="fp"></div>
+
+  <div class="kpis">
+    <div class="kpi"><b id="kBlocked">0</b><span>今日拦截</span></div>
+    <div class="kpi"><b id="kRules">0</b><span>规则总数</span></div>
+    <div class="kpi"><b id="kActive">0</b><span>生效规则</span></div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab on" data-p="rules">过滤规则</div>
+    <div class="tab" data-p="white">白名单</div>
+    <div class="tab" data-p="reviews">待审核</div>
+    <div class="tab" data-p="records">拦截记录</div>
+    <div class="tab" data-p="stats">访问统计</div>
+    <div class="tab" data-p="alerts">告警</div>
+    <div class="tab" data-p="iplib">IP 库</div>
+  </div>
+
+  <div class="pane on" id="p-rules">
+    <div class="panel">
+      <table><thead><tr><th>规则名称</th><th>动作</th><th>条件</th><th>状态</th><th style="text-align:right">操作</th></tr></thead>
+        <tbody id="ruleRows"><tr><td colspan="5" class="muted">加载中…</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <div class="pane" id="p-white">
+    <div class="panel">
+      <div class="toolbar"><input id="wIp" placeholder="IP 或 IP 段（192.168.1.0/24）" style="max-width:260px"><input id="wNote" placeholder="备注" style="flex:1"><button class="btn" onclick="addWhite()">添加白名单</button></div>
+      <table><thead><tr><th>IP</th><th>备注</th><th>时间</th><th></th></tr></thead><tbody id="whiteRows"></tbody></table>
+    </div>
+  </div>
+
+  <div class="pane" id="p-reviews">
+    <div class="panel"><table><thead><tr><th>时间</th><th>IP</th><th>国家</th><th>原因</th><th>状态</th><th style="text-align:right">操作</th></tr></thead><tbody id="reviewRows"></tbody></table></div>
+  </div>
+
+  <div class="pane" id="p-records">
+    <div class="panel"><table><thead><tr><th>时间</th><th>页面/链接</th><th>IP</th><th>国家</th><th>动作</th><th>UA</th></tr></thead><tbody id="recordRows"></tbody></table></div>
+  </div>
+
+  <div class="pane" id="p-stats">
+    <div class="panel"><table><thead><tr><th>日期</th><th>动作</th><th>次数</th></tr></thead><tbody id="statRows"></tbody></table></div>
+  </div>
+
+  <div class="pane" id="p-alerts">
+    <div class="panel">
+      <div class="toolbar"><button class="btn ghost" onclick="readAllAlerts()">全部标记已读</button></div>
+      <table><thead><tr><th>时间</th><th>规则</th><th>命中</th><th>内容</th><th>状态</th><th></th></tr></thead><tbody id="alertRows"></tbody></table>
+    </div>
+  </div>
+
+  <div class="pane" id="p-iplib">
+    <div class="panel">
+      <div class="toolbar"><button class="btn" onclick="importIpdb()">导入 / 更新本地 IP 库</button><button class="btn ghost" onclick="importAsn(0)">导入 ASN 清单（687）</button><button class="btn ghost" onclick="importAsn(1)">严格模式（694）</button><span class="muted" id="ipdbStatus">未加载</span></div>
+      <div class="muted">把 DB-IP 的 <code>dbip-country-lite.csv.gz</code>、<code>dbip-asn-lite.csv.gz</code> 放进 <code>webapp/data/ipdb/</code>，点上面按钮导入；导入后查询优先走本地库。</div>
+    </div>
+    <div class="panel">
+      <div class="toolbar"><input id="ipQ" placeholder="输入 IP，例如 8.8.8.8" style="max-width:240px"><button class="btn" onclick="lookupIP()">查询</button></div>
+      <div id="ipResult" class="muted">查询结果会显示在这里。</div>
+    </div>
+    <div class="panel">
+      <h2>内置识别规则（机房/VPN/Tor 判定依据）</h2>
+      <table><thead><tr><th>类型</th><th>匹配关键词</th></tr></thead><tbody>
+        <tr><td>数据中心</td><td class="muted">Cloudflare, DigitalOcean, AWS, Amazon, Google, Azure, OVH, Hetzner, NTT, Linode, Vultr, Alibaba, Tencent</td></tr>
+        <tr><td>Tor</td><td class="muted">Tor, tor-exit, TOR-EXIT</td></tr>
+        <tr><td>VPN/代理</td><td class="muted">vpn, proxy, private</td></tr>
+        <tr><td>爬虫/自动化</td><td class="muted">Googlebot, bingbot, Baiduspider, facebookexternalhit, HeadlessChrome, Puppeteer, Playwright, curl/, Wget/, python-requests, Go-http-client, bot, crawler, spider</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+</div>
+
+<dialog id="dlg">
+  <div class="dh"><b id="dlgTitle">添加过滤规则</b><span class="sp"></span><button class="btn ghost" onclick="dlg.close()">关闭</button></div>
+  <div class="body">
+    <div class="sec"><h3>基本信息</h3><div class="grid">
+      <label>规则名称<input id="f_name" placeholder="例如：屏蔽竞争对手"></label>
+      <label>动作<select id="f_action"><option value="block">拦截</option><option value="allow">放行</option><option value="redirect">跳转</option><option value="review">待审核</option></select></label>
+      <label>启用<select id="f_enabled"><option value="1">启用</option><option value="0">停用</option></select></label>
+      <label>跳转地址<input id="f_target" placeholder="https://..."></label>
+      <label>审核期（天）<input id="f_review_days" type="number" value="0"></label>
+    </div></div>
+
+    <div class="sec"><h3>落地页关联</h3><div class="grid">
+      <label>类型<select id="f_land_type"><option value="">不限</option><option value="landing">落地页</option><option value="external">外部 URL</option><option value="postback">回传落地页</option></select></label>
+      <label>落地页 / URL<input id="f_land_value" placeholder="/p/xxx 或 https://..."></label>
+    </div></div>
+
+    <div class="sec"><h3>IP / 域名 / UA / Referer / Cookie</h3><div class="grid">
+      <label>IP 过滤<select id="f_ip_mode"><option value="off">不启用</option><option value="black">黑名单</option><option value="white">白名单</option></select></label>
+      <label>IP 列表<textarea id="f_ip_list" rows="3" placeholder="每行一个 IP 或 IP 段"></textarea></label>
+      <label>域名过滤<select id="f_domain_mode"><option value="off">不启用</option><option value="black">黑名单</option><option value="white">白名单</option></select></label>
+      <label>域名列表<textarea id="f_domains" rows="3"></textarea></label>
+      <label>UA 过滤<select id="f_ua_mode"><option value="off">不启用</option><option value="black">黑名单</option><option value="white">白名单</option></select></label>
+      <label>UA 关键词<textarea id="f_ua_list" rows="3"></textarea></label>
+      <label>Referer 过滤<select id="f_referer_mode"><option value="off">不启用</option><option value="black">黑名单</option><option value="white">白名单</option></select></label>
+      <label>Referer 列表<textarea id="f_referers" rows="3"></textarea></label>
+      <label>Cookie 过滤<select id="f_cookie_mode"><option value="off">不启用</option><option value="black">黑名单</option><option value="white">白名单</option></select></label>
+      <label>Cookie 名称/值<textarea id="f_cookies" rows="3"></textarea></label>
+    </div></div>
+
+    <div class="sec"><h3>地理位置 / 设备 / 系统 / 语言</h3><div class="grid">
+      <label>地理位置<select id="f_country_mode"><option value="off">不启用</option><option value="black">黑名单</option><option value="white">白名单</option></select></label>
+      <label>国家代码<textarea id="f_countries" rows="2" placeholder="CN,HK,TW"></textarea></label>
+      <label>设备<select id="f_device"><option value="any">不限</option><option value="手机">手机</option><option value="平板">平板</option><option value="电脑">电脑</option></select></label>
+      <label>操作系统<textarea id="f_os_list" rows="2" placeholder="iOS,Android,Windows,macOS"></textarea></label>
+      <label>系统语言<textarea id="f_languages" rows="2" placeholder="zh,en,ja"></textarea></label>
+    </div></div>
+
+    <div class="sec"><h3>VPN / 代理 / 机房</h3>
+      <div class="checks">
+        <label><input type="checkbox" value="vpn" class="vpn"> 拦截 VPN/代理</label>
+        <label><input type="checkbox" value="tor" class="vpn"> 拦截 Tor</label>
+        <label><input type="checkbox" value="dc" class="vpn"> 拦截数据中心 IP</label>
+        <label><input type="checkbox" id="f_residential"> 仅允许住宅 IP</label>
+      </div>
+    </div>
+
+    <div class="sec"><h3>浏览器 / App / ASN</h3><div class="grid">
+      <label>浏览器/App 列表<textarea id="f_browsers" rows="2" placeholder="Chrome,Edge,Safari,Firefox,app"></textarea></label>
+      <label>ASN 列表<textarea id="f_asn_list" rows="2" placeholder="AS15169,AS2914"></textarea></label>
+    </div></div>
+
+    <div class="sec"><h3>访问流量限制（空=不限）</h3><div class="grid">
+      <label>每分钟<input id="f_limit_min" type="number"></label>
+      <label>每小时<input id="f_limit_hour" type="number"></label>
+      <label>24 小时<input id="f_limit_day" type="number"></label>
+      <label>总流量<input id="f_limit_total" type="number"></label>
+    </div></div>
+
+    <div class="sec"><h3>时段策略</h3><div class="grid">
+      <label>开始时间<input id="f_sched_start" placeholder="09:00"></label>
+      <label>结束时间<input id="f_sched_end" placeholder="18:00"></label>
+      <label>时区<input id="f_sched_tz" placeholder="Asia/Shanghai"></label>
+      <label>生效日（1-7 逗号）<input id="f_sched_days" placeholder="1,2,3,4,5"></label>
+    </div></div>
+
+    <div class="sec"><h3>进阶条件</h3>
+      <div class="checks">
+        <label><input type="checkbox" id="f_inapp"> 应用内浏览器免检</label>
+        <label><input type="checkbox" id="f_cn"> 仅 CN 中文设备命中</label>
+        <label><input type="checkbox" id="f_crawler"> 仅识别已知爬虫/自动化 UA</label>
+        <label><input type="checkbox" id="f_noclick"> 仅无广告点击参数时命中</label>
+        <label><input type="checkbox" id="f_icloud"> 仅 iCloud 私人中继命中</label>
+        <label><input type="checkbox" id="f_js"> JS 反爬校验</label>
+      </div>
+      <div class="grid" style="margin-top:10px"><label>重复访问阈值（次/24h）<input id="f_repeat_limit" type="number"></label></div>
+    </div>
+  </div>
+  <div class="foot"><button class="btn ghost" onclick="dlg.close()">取消</button><button class="btn" onclick="saveRule()">保存规则</button></div>
+</dialog>
+
+<script src="/help.js"></script>
+<script>
+const token = localStorage.getItem('admin_token') || '';
+if (!token) location.href = '/admin/';
+const $ = (id) => document.getElementById(id);
+const dlg = $('dlg');
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const fmt = (t) => t ? new Date(t).toLocaleString('zh-CN', { hour12: false }) : '';
+let rules = [], editing = null;
+async function api(path, method = 'GET', body) {
+  const r = await fetch('/api/admin' + path, { method, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: body == null ? null : JSON.stringify(body) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+  return j;
+}
+function toast(m) { const d = document.createElement('div'); d.textContent = m; d.style.cssText = 'position:fixed;left:50%;top:20px;transform:translateX(-50%);background:#1c2740;border:1px solid #2b3850;padding:9px 16px;border-radius:10px;z-index:99'; document.body.appendChild(d); setTimeout(() => d.remove(), 2200); }
+function summary(r) {
+  const p = [];
+  if (r.ip_list) p.push('IP');
+  if (r.domains) p.push('域名');
+  if (r.ua_list) p.push('UA');
+  if (r.referers) p.push('Referer');
+  if (r.cookies) p.push('Cookie');
+  if (r.countries) p.push('国家');
+  if (r.asn_list) p.push('ASN');
+  if (r.browsers) p.push('浏览器');
+  if (r.crawler_block === '1') p.push('爬虫');
+  if (r.cn_device === '1') p.push('CN 设备');
+  if (r.no_click_param === '1') p.push('无点击参数');
+  if (r.vpn_flags) p.push('VPN');
+  if (r.limit_day || r.limit_min || r.limit_hour || r.limit_total) p.push('限流');
+  if (r.sched_start || r.sched_end || r.sched_days) p.push('时段');
+  if (r.tz_gate === '1') p.push('时区门');
+  return p.join(' · ') || '无';
+}
+async function loadAll() {
+  const meta = await api('/cloak/meta');
+  const v = meta.visitor || {};
+  $('fp').innerHTML = `
+    <div><span>设备</span><b>${esc(v.device)}</b></div>
+    <div><span>系统</span><b>${esc(v.os)}</b></div>
+    <div><span>应用 / 浏览器</span><b>${esc(browserName(v.ua))}</b></div>
+    <div><span>系统语言</span><b>${esc(v.language || '-')}</b></div>
+    <div><span>IP</span><b>${esc(v.ip)}</b></div>
+    <div><span>地址</span><b>${esc(v.asn || '-')}</b></div>
+    <div><span>时间</span><b>${new Date().toLocaleString('zh-CN', { hour12: false })}</b></div>`;
+  $('kBlocked').textContent = meta.counts.blocked_today;
+  $('kRules').textContent = meta.counts.rules;
+  $('kActive').textContent = meta.counts.active;
+  await loadRules();
+}
+function browserName(ua) {
+  const s = String(ua || '');
+  if (/Edg\//.test(s)) return 'Edge';
+  if (/Chrome\//.test(s)) return 'Chrome';
+  if (/Safari\//.test(s)) return 'Safari';
+  if (/Firefox\//.test(s)) return 'Firefox';
+  return s.slice(0, 40) || '-';
+}
+async function loadRules() {
+  const r = await api('/entities/cloak_rules?limit=200');
+  rules = r.rows || [];
+  $('ruleRows').innerHTML = rules.length ? rules.map((x) => `<tr><td>${esc(x.name)}</td><td>${esc(x.action)}</td><td class="rule-cond">${esc(summary(x))}</td><td>${x.enabled == 1 ? '<span class="chip ok">启用</span>' : '<span class="chip">停用</span>'}</td><td style="text-align:right"><button class="btn ghost" onclick="editRule(${x.id})">编辑</button> <button class="btn ghost" onclick="delRule(${x.id})">删除</button></td></tr>`).join('') : '<tr><td colspan="5" class="muted">还没有规则，点右上角添加</td></tr>';
+}
+function setChecks(vals) { document.querySelectorAll('.vpn').forEach((c) => c.checked = (vals || '').split(',').includes(c.value)); }
+function readChecks() { return [...document.querySelectorAll('.vpn:checked')].map((c) => c.value).join(','); }
+function fill(r) {
+  const f = (id, key, val) => { const el = $(id); if (!el) return; if (el.type === 'checkbox') el.checked = String(r[key] || '') === '1'; else el.value = r[key] == null ? (val || '') : r[key]; };
+  ['name', 'action', 'enabled', 'target', 'review_days', 'land_type', 'land_value', 'ip_mode', 'ip_list', 'domain_mode', 'domains', 'ua_mode', 'ua_list', 'referer_mode', 'referers', 'cookie_mode', 'cookies', 'country_mode', 'countries', 'device', 'os_list', 'languages', 'browsers', 'asn_list', 'limit_min', 'limit_hour', 'limit_day', 'limit_total', 'sched_start', 'sched_end', 'sched_tz', 'sched_days', 'repeat_limit']
+    .forEach((k) => f('f_' + k, k, ''));
+  f('f_inapp', 'inapp_block'); f('f_cn', 'cn_device'); f('f_crawler', 'crawler_block'); f('f_noclick', 'no_click_param'); f('f_icloud', 'icloud_relay'); f('f_js', 'js_challenge'); f('f_residential', 'residential_only');
+  setChecks(r.vpn_flags || '');
+}
+function editRule(id) {
+  editing = id ? rules.find((x) => x.id === id) : null;
+  $('dlgTitle').textContent = id ? '编辑过滤规则' : '添加过滤规则';
+  fill(editing || { action: 'block', enabled: '1', device: 'any' });
+  dlg.showModal();
+}
+async function saveRule() {
+  const g = (id) => $(id).value;
+  const c = (id) => ($(id).checked ? '1' : '0');
+  const body = {
+    name: g('f_name'), action: g('f_action'), enabled: g('f_enabled'), target: g('f_target'), review_days: g('f_review_days'),
+    land_type: g('f_land_type'), land_value: g('f_land_value'),
+    ip_mode: g('f_ip_mode'), ip_list: g('f_ip_list'), domain_mode: g('f_domain_mode'), domains: g('f_domains'),
+    ua_mode: g('f_ua_mode'), ua_list: g('f_ua_list'), referer_mode: g('f_referer_mode'), referers: g('f_referers'),
+    cookie_mode: g('f_cookie_mode'), cookies: g('f_cookies'),
+    country_mode: g('f_country_mode'), countries: g('f_countries'), device: g('f_device'), os_list: g('f_os_list'), languages: g('f_languages'),
+    vpn_flags: readChecks(), asn_list: g('f_asn_list'), browsers: g('f_browsers'),
+    limit_min: g('f_limit_min'), limit_hour: g('f_limit_hour'), limit_day: g('f_limit_day'), limit_total: g('f_limit_total'),
+    sched_start: g('f_sched_start'), sched_end: g('f_sched_end'), sched_tz: g('f_sched_tz'), sched_days: g('f_sched_days'),
+    inapp_block: c('f_inapp'), cn_device: c('f_cn'), crawler_block: c('f_crawler'), no_click_param: c('f_noclick'),
+    icloud_relay: c('f_icloud'), js_challenge: c('f_js'), residential_only: c('f_residential'), repeat_limit: g('f_repeat_limit'),
+  };
+  if (!body.name.trim()) return toast('规则名必填');
+  try {
+    if (editing) await api('/entities/cloak_rules/' + editing.id, 'PUT', body);
+    else await api('/entities/cloak_rules', 'POST', body);
+    dlg.close(); toast('已保存'); loadAll();
+  } catch (e) { toast('保存失败：' + e.message); }
+}
+async function delRule(id) { if (!confirm('删除规则 #' + id + '？')) return; await api('/entities/cloak_rules/' + id, 'DELETE'); loadAll(); }
+async function addWhite() { const ip = $('wIp').value.trim(); if (!ip) return toast('填 IP'); await api('/cloak/whitelist', 'POST', { ip, note: $('wNote').value.trim() }); $('wIp').value = ''; $('wNote').value = ''; loadWhitelist(); }
+async function loadWhitelist() {
+  const r = await api('/cloak/whitelist');
+  $('whiteRows').innerHTML = r.rows.length ? r.rows.map((x) => `<tr><td>${esc(x.ip)}</td><td>${esc(x.note || '')}</td><td class="muted">${fmt(x.created_at)}</td><td><button class="btn ghost" onclick="delWhite(${x.id})">删除</button></td></tr>`).join('') : '<tr><td colspan="4" class="muted">还没有白名单</td></tr>';
+}
+async function delWhite(id) { await api('/cloak/whitelist', 'DELETE', { id }); loadWhitelist(); }
+async function loadReviews() {
+  const r = await api('/cloak/reviews');
+  $('reviewRows').innerHTML = r.rows.length ? r.rows.map((x) => `<tr><td class="muted">${fmt(x.created_at)}</td><td>${esc(x.ip)}</td><td>${esc(x.country)}</td><td>${esc(x.reason || '')}</td><td>${esc(x.status)}</td><td style="text-align:right"><button class="btn ghost" onclick="review(${x.id},'approve')">通过</button> <button class="btn ghost" onclick="review(${x.id},'reject')">拒绝</button></td></tr>`).join('') : '<tr><td colspan="6" class="muted">没有待审核记录</td></tr>';
+}
+async function review(id, action) { await api('/cloak/reviews', 'POST', { id, action }); loadReviews(); }
+async function loadRecords() {
+  const r = await api('/cloak/records');
+  $('recordRows').innerHTML = r.rows.length ? r.rows.map((x) => `<tr><td class="muted">${fmt(x.created_at)}</td><td>${esc(x.code)}</td><td>${esc(x.ip)}</td><td>${esc(x.country)}</td><td>${esc(x.action)}</td><td class="muted">${esc(String(x.ua || '').slice(0, 60))}</td></tr>`).join('') : '<tr><td colspan="6" class="muted">还没有拦截记录</td></tr>';
+}
+async function loadStats() {
+  const r = await api('/cloak/stats');
+  $('statRows').innerHTML = r.rows.length ? r.rows.map((x) => `<tr><td>${esc(x.d)}</td><td>${esc(x.action)}</td><td>${x.n}</td></tr>`).join('') : '<tr><td colspan="3" class="muted">还没有访问数据</td></tr>';
+}
+async function loadAlerts() {
+  const r = await api('/cloak/alerts');
+  $('alertRows').innerHTML = r.rows.length ? r.rows.map((x) => `<tr><td class="muted">${fmt(x.created_at)}</td><td>${esc(x.rule_name)}</td><td>${x.hits}</td><td>${esc(x.message)}</td><td>${x.read ? '<span class="chip">已读</span>' : '<span class="chip bad">未读</span>'}</td><td>${x.read ? '' : `<button class="btn ghost" onclick="readAlert(${x.id})">标记已读</button>`}</td></tr>`).join('') : '<tr><td colspan="6" class="muted">没有告警</td></tr>';
+}
+async function readAlert(id) { await api('/cloak/alerts', 'POST', { id }); loadAlerts(); }
+async function readAllAlerts() { await api('/cloak/alerts', 'POST', {}); loadAlerts(); }
+const NAME_CN = { CN: '中国', US: '美国', HK: '香港', TW: '台湾', JP: '日本', KR: '韩国', SG: '新加坡', MY: '马来西亚', TH: '泰国', VN: '越南', PH: '菲律宾', ID: '印尼', IN: '印度', GB: '英国', DE: '德国', FR: '法国', AU: '澳大利亚', CA: '加拿大', BR: '巴西', RU: '俄罗斯', AE: '阿联酋', SA: '沙特', TR: '土耳其', IT: '意大利', ES: '西班牙', NL: '荷兰', ZZ: '未知' };
+function countryName(code) { return NAME_CN[String(code || '').toUpperCase()] || ''; }
+async function lookupIP() {
+  const ip = $('ipQ').value.trim();
+  if (!ip) return toast('先填 IP');
+  $('ipResult').textContent = '查询中…';
+  try {
+    const r = await api('/cloak/ip-lookup?ip=' + encodeURIComponent(ip));
+    const d = r.data || {};
+    $('ipResult').innerHTML = `<div class="fp" style="margin:0"><div><span>IP</span><b>${esc(d.query || ip)}</b></div><div><span>国家</span><b>${esc(d.country || countryName(d.countryCode) || '-')} ${esc(d.countryCode || '')}</b></div><div><span>地区/城市</span><b>${esc((d.regionName || '') + ' ' + (d.city || ''))}</b></div><div><span>运营商</span><b>${esc(d.isp || '-')}</b></div><div><span>ASN</span><b>${esc(d.as || '-')}</b></div><div><span>来源</span><b>${esc(r.source || '-')}</b></div></div>`;
+  } catch (e) { $('ipResult').textContent = '查询失败：' + e.message; }
+}
+async function loadIpdbStatus() {
+  try {
+    const r = await api('/cloak/ipdb/status');
+    const m = r.meta || {};
+    $('ipdbStatus').textContent = '国家段 ' + (m.ipdb_country_count || 0) + ' 条 / ASN 段 ' + (m.ipdb_asn_count || 0) + ' 条' + (m.ipdb_country_updated ? '（更新 ' + m.ipdb_country_updated.slice(0, 10) + '）' : '');
+  } catch (e) { $('ipdbStatus').textContent = '状态读取失败'; }
+}
+async function importIpdb() {
+  $('ipdbStatus').textContent = '导入中，请稍候…';
+  try { const r = await api('/cloak/ipdb/import', 'POST', {}); $('ipdbStatus').textContent = '导入完成：国家 ' + (r.imported.country || 0) + ' 条，ASN ' + (r.imported.asn || 0) + ' 条'; toast('导入完成'); }
+  catch (e) { $('ipdbStatus').textContent = '导入失败：' + e.message; }
+}
+async function importAsn(strict) {
+  try { const r = await api('/cloak/asn-block/import' + (strict ? '?strict=1' : ''), 'POST', {}); toast('已导入 ' + r.count + ' 个 ASN 到「ASN 机房封锁」规则'); loadAll(); }
+  catch (e) { toast('导入失败：' + e.message); }
+}
+document.querySelectorAll('.tab').forEach((t) => t.onclick = () => {
+  document.querySelectorAll('.tab').forEach((x) => x.classList.remove('on'));
+  document.querySelectorAll('.pane').forEach((x) => x.classList.remove('on'));
+  t.classList.add('on'); $('p-' + t.dataset.p).classList.add('on');
+  if (t.dataset.p === 'white') loadWhitelist();
+  if (t.dataset.p === 'reviews') loadReviews();
+  if (t.dataset.p === 'records') loadRecords();
+  if (t.dataset.p === 'stats') loadStats();
+  if (t.dataset.p === 'alerts') loadAlerts();
+  if (t.dataset.p === 'iplib') loadIpdbStatus();
+});
+loadAll().catch((e) => toast('加载失败：' + e.message));
+</script>
+</body>
+</html>
