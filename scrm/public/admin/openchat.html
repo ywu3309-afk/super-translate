@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>开口广告回传 · 超级聚合</title>
+<link rel="stylesheet" href="/shared.css">
+<style>
+  body{background:var(--bg)}
+  .wrap{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+  .head{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+  .head h1{font-size:20px;margin:0}
+  .head .sp{flex:1}
+  .tag{font-size:12px;color:var(--muted)}
+  .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:16px}
+  .step{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-lg);padding:14px}
+  .step b{display:block;font-size:13px;margin-bottom:4px}
+  .step span{color:var(--muted);font-size:12px}
+  .step.done{border-color:rgba(52,211,153,.45)}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .chip{font-size:12px;padding:3px 9px;border-radius:999px;border:1px solid var(--line2);color:var(--muted)}
+  .chip.ok{color:var(--ok);border-color:rgba(52,211,153,.45)}
+  .chip.bad{color:var(--bad);border-color:rgba(248,113,113,.45)}
+  .switch{width:46px;height:26px;border-radius:999px;background:#2b3850;position:relative;cursor:pointer;transition:background .15s}
+  .switch.on{background:var(--brand)}
+  .switch i{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .15s}
+  .switch.on i{left:23px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media (max-width:900px){.grid2{grid-template-columns:1fr}}
+  .muted{color:var(--muted);font-size:12px}
+  .kpi{display:flex;gap:18px;flex-wrap:wrap}
+  .kpi div{background:var(--panel2);border:1px solid var(--line);border-radius:var(--radius-md);padding:10px 14px;min-width:120px}
+  .kpi b{display:block;font-size:20px;font-variant-numeric:tabular-nums}
+  .kpi span{color:var(--muted);font-size:12px}
+</style>
+</head>
+<body data-help="openchat">
+<div class="wrap">
+  <div class="head">
+    <h1>开口广告回传 <span class="tag">Beta</span></h1>
+    <span id="statusChip" class="chip">未连接</span>
+    <span class="sp"></span>
+    <a class="btn ghost" href="/admin/">返回后台</a>
+  </div>
+
+  <div class="banner panel" id="trialBox" style="display:none;margin-bottom:16px">
+    <div class="row"><b>免费试用剩余</b><span id="trialLeft" style="font-size:20px;font-variant-numeric:tabular-nums"></span><span class="muted">试用结束后需开通会员才能继续使用</span></div>
+  </div>
+
+  <div class="steps" id="steps">
+    <div class="step" data-k="1"><b>1 · 开启开口回传</b><span>打开下方总开关并保存</span></div>
+    <div class="step" data-k="2"><b>2 · 绑定回传像素</b><span>添加 Facebook / TikTok 像素 ID</span></div>
+    <div class="step" data-k="3"><b>3 · 广告链接用海外分流</b><span>分流链接才会带回传参数</span></div>
+    <div class="step" data-k="4"><b>4 · 连接 SCRM</b><span>填共享码，一键连接</span></div>
+    <div class="step" data-k="5"><b>5 · 验证效果</b><span>用广告链接发一条消息</span></div>
+  </div>
+
+  <div class="grid2">
+    <div class="panel">
+      <h2>连接 SCRM</h2>
+      <div class="row">
+        <input id="code" placeholder="chm_ 开头的一串（SCRM 后台 → 号池共享 → 复制）" style="flex:1;min-width:240px">
+        <button class="btn" id="connect">一键连接</button>
+        <button class="btn ghost" id="disconnect">断开</button>
+      </div>
+      <p class="muted" id="connHint">还没连接。填好共享码点「一键连接」。</p>
+    </div>
+
+    <div class="panel">
+      <h2>总开关与高级设置</h2>
+      <div class="row" style="justify-content:space-between">
+        <div><b>启用开口回传</b><div class="muted">关闭后完全回传，原有点击/跳转不受影响</div></div>
+        <div class="switch" id="sw"><i></i></div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <label class="muted">识别方式
+          <select id="mode" style="margin-top:4px">
+            <option value="click">点击识别</option>
+            <option value="keyword">关键词识别</option>
+          </select>
+        </label>
+        <label class="muted">回传事件
+          <select id="event" style="margin-top:4px">
+            <option>Lead</option><option>Purchase</option><option>Contact</option><option>CompleteRegistration</option>
+          </select>
+        </label>
+      </div>
+      <div class="muted" style="margin-top:10px">生效平台</div>
+      <div class="row" id="plats" style="margin-top:4px"></div>
+      <div class="row" style="margin-top:14px">
+        <button class="btn" id="save">保存设置</button>
+        <button class="btn ghost" id="reset">恢复默认</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:16px">
+    <h2>回传像素</h2>
+    <div class="row">
+      <select id="pxPlat" style="max-width:160px"><option>Facebook</option><option>TikTok</option></select>
+      <input id="pxId" placeholder="像素 ID" style="max-width:220px">
+      <input id="pxToken" placeholder="访问令牌（可空）" style="flex:1;min-width:200px">
+      <button class="btn" id="pxAdd">添加像素</button>
+    </div>
+    <table style="margin-top:12px"><thead><tr><th>平台</th><th>像素 ID</th><th>令牌</th><th>时间</th><th></th></tr></thead>
+      <tbody id="pxRows"><tr><td colspan="5" class="muted">还没有像素</td></tr></tbody></table>
+  </div>
+
+  <div class="panel" style="margin-top:16px">
+    <h2>开口记录</h2>
+    <div class="kpi" style="margin-bottom:12px">
+      <div><b id="kOpen">0</b><span>近 24 小时开口</span></div>
+      <div><b id="kRep">0</b><span>已回传</span></div>
+      <div><b id="kPen">0</b><span>待回传</span></div>
+    </div>
+    <div class="row" style="margin-bottom:10px">
+      <select id="fPlat" style="max-width:160px"><option value="">全部平台</option><option>WhatsApp</option><option>LINE</option><option>Telegram</option><option>Kakao</option></select>
+      <select id="fStatus" style="max-width:160px"><option value="">全部状态</option><option value="reported">已回传</option><option value="pending">待回传</option></select>
+      <button class="btn ghost" id="fApply">筛选</button>
+    </div>
+    <table><thead><tr><th>时间</th><th>平台</th><th>客服号</th><th>识别方式</th><th>对应广告</th><th>事件</th><th>状态</th></tr></thead>
+      <tbody id="evRows"><tr><td colspan="7" class="muted">还没有开口记录。连接 SCRM 后这里会实时显示。</td></tr></tbody></table>
+  </div>
+</div>
+
+<script src="/help.js"></script>
+<script>
+const token = localStorage.getItem('admin_token') || '';
+if (!token) location.href = '/admin/';
+let state = { config: {}, pixels: [], events: [] };
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function fmt(t) { return t ? new Date(t).toLocaleString('zh-CN', { hour12: false }) : ''; }
+async function api(path, method = 'GET', body) {
+  const r = await fetch('/api/admin' + path, { method, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: body == null ? null : JSON.stringify(body) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+  return j;
+}
+function toast(msg) { const d = document.createElement('div'); d.textContent = msg; d.style.cssText = 'position:fixed;left:50%;top:22px;transform:translateX(-50%);background:#1c2740;border:1px solid #2b3850;color:#e8eefb;padding:9px 16px;border-radius:10px;z-index:99;font-size:13px;box-shadow:0 10px 30px rgba(0,0,0,.4)'; document.body.appendChild(d); setTimeout(() => d.remove(), 2200); }
+function countdown() {
+  const until = state.config.trial_until ? new Date(state.config.trial_until).getTime() : 0;
+  if (!until || state.config.status !== 'connected') { $('trialBox').style.display = 'none'; return; }
+  const left = until - Date.now();
+  if (left <= 0) { $('trialLeft').textContent = '已到期'; $('trialBox').style.display = 'block'; return; }
+  const d = Math.floor(left / 86400e3), h = Math.floor(left / 3600e3) % 24, m = Math.floor(left / 60e3) % 60, s = Math.floor(left / 1e3) % 60;
+  $('trialLeft').textContent = d + ' 天 ' + String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  $('trialBox').style.display = 'block';
+}
+function render() {
+  const c = state.config || {};
+  const connected = c.status === 'connected';
+  const chip = $('statusChip');
+  chip.textContent = connected ? '已连接' : '未连接';
+  chip.className = 'chip ' + (connected ? 'ok' : 'bad');
+  $('connHint').textContent = connected ? ('已连接共享码：' + (c.share_code || '')) : '还没连接。填好共享码点「一键连接」。';
+  $('sw').classList.toggle('on', !!c.enabled);
+  $('mode').value = c.identify_mode || 'click';
+  $('event').value = c.event || 'Lead';
+  const plats = String(c.platforms || '').split(',').filter(Boolean);
+  $('plats').innerHTML = ['WhatsApp', 'LINE', 'Telegram', 'Kakao'].map((p) => `<label class="muted" style="display:flex;gap:5px;align-items:center"><input type="checkbox" value="${p}" ${plats.includes(p) ? 'checked' : ''}>${p}</label>`).join('');
+  $('pxRows').innerHTML = state.pixels.length ? state.pixels.map((p) => `<tr><td>${esc(p.platform)}</td><td>${esc(p.pixel_id)}</td><td class="muted">${esc(p.token || '-')}</td><td class="muted">${fmt(p.created_at)}</td><td><button class="btn ghost" onclick="delPixel(${p.id})">删除</button></td></tr>`).join('') : '<tr><td colspan="5" class="muted">还没有像素</td></tr>';
+  $('kOpen').textContent = state.stats.opens || 0;
+  $('kRep').textContent = state.stats.reported || 0;
+  $('kPen').textContent = state.stats.pending || 0;
+  $('evRows').innerHTML = state.events.length ? state.events.map((e) => `<tr><td class="muted">${fmt(e.created_at)}</td><td>${esc(e.platform)}</td><td>${esc(e.staff || '-')}</td><td>${esc(e.identify || '-')}</td><td>${esc(e.ad || '-')}</td><td>${esc(e.event)}</td><td>${e.status === 'reported' ? '<span class="chip ok">已回传</span>' : '<span class="chip">待回传</span>'}</td></tr>`).join('') : '<tr><td colspan="7" class="muted">还没有开口记录。连接 SCRM 后这里会实时显示。</td></tr>';
+  const done = [!!c.enabled, state.pixels.length > 0, true, connected, state.events.length > 0];
+  document.querySelectorAll('#steps .step').forEach((el, i) => el.classList.toggle('done', !!done[i]));
+  countdown();
+}
+async function load() {
+  const r = await api('/openchat');
+  state = r;
+  render();
+}
+async function save() {
+  const platforms = [...$('plats').querySelectorAll('input:checked')].map((x) => x.value).join(',');
+  await api('/openchat/config', 'POST', { enabled: $('sw').classList.contains('on'), identify_mode: $('mode').value, event: $('event').value, platforms });
+  toast('已保存'); load();
+}
+async function connect() {
+  const code = $('code').value.trim();
+  if (!code) return toast('先填共享码');
+  try { await api('/openchat/connect', 'POST', { code }); toast('连接成功'); load(); } catch (e) { toast('连接失败：' + e.message); }
+}
+async function delPixel(id) { await api('/openchat/pixels/' + id, 'DELETE'); load(); }
+$('sw').onclick = () => $('sw').classList.toggle('on');
+$('save').onclick = save;
+$('reset').onclick = async () => { await api('/openchat/config', 'POST', { enabled: 0, identify_mode: 'click', event: 'Lead', platforms: 'WhatsApp,LINE,Telegram,Kakao' }); toast('已恢复默认'); load(); };
+$('connect').onclick = connect;
+$('disconnect').onclick = async () => { await api('/openchat/disconnect', 'POST', {}); toast('已断开'); load(); };
+$('pxAdd').onclick = async () => {
+  const pixel_id = $('pxId').value.trim();
+  if (!pixel_id) return toast('填像素 ID');
+  await api('/openchat/pixels', 'POST', { platform: $('pxPlat').value, pixel_id, token: $('pxToken').value.trim() });
+  $('pxId').value = ''; $('pxToken').value = ''; toast('已添加'); load();
+};
+$('fApply').onclick = async () => {
+  const q = new URLSearchParams({ platform: $('fPlat').value, status: $('fStatus').value });
+  const r = await api('/openchat/events?' + q.toString());
+  state.events = r.rows; render();
+};
+setInterval(countdown, 1000);
+load().catch((e) => toast('加载失败：' + e.message));
+</script>
+</body>
+</html>

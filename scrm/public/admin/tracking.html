@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>数据追踪 · 超级聚合</title>
+<link rel="stylesheet" href="/shared.css">
+<style>body{background:var(--bg)}.wrap{max-width:1200px;margin:0 auto;padding:22px 20px 60px}.head{display:flex;gap:10px;align-items:center;margin-bottom:14px}.head h1{font-size:20px;margin:0}.head .sp{flex:1}.muted{color:var(--muted);font-size:12px}</style>
+</head><body data-help="tracking"><div class="wrap">
+<div class="head"><h1>数据追踪</h1><span class="muted" id="day"></span><span class="sp"></span><a class="btn ghost" href="/admin/">返回后台</a></div>
+<div class="cards" id="cards"></div>
+<div class="panel"><h2>事件流</h2><table><thead><tr><th>时间</th><th>类型</th><th>代码</th><th>IP</th><th>国家</th><th>动作</th><th>来源/计划</th></tr></thead><tbody id="rows"><tr><td colspan="7" class="muted">加载中…</td></tr></tbody></table></div>
+</div><script src="/help.js"></script><script>
+const token=localStorage.getItem('admin_token')||'';if(!token)location.href='/admin/';
+const esc=(s)=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=(t)=>t?new Date(t).toLocaleString('zh-CN',{hour12:false}):'';
+async function api(p){const r=await fetch('/api/admin'+p,{headers:{Authorization:'Bearer '+token}});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||('HTTP '+r.status));return j;}
+(async()=>{const s=await api('/tracking/summary');document.getElementById('day').textContent='统计日 '+s.day;
+ document.getElementById('cards').innerHTML=`<div class="card"><div class="k">访问</div><div class="v">${s.visits}</div></div><div class="card"><div class="k">点击</div><div class="v">${s.clicks}</div></div><div class="card"><div class="k">留资</div><div class="v">${s.leads}</div></div><div class="card"><div class="k">转化</div><div class="v">${s.conversions}</div></div>`;
+ const e=await api('/tracking/events');document.getElementById('rows').innerHTML=e.rows.length?e.rows.map(x=>`<tr><td class="muted">${fmt(x.created_at)}</td><td>${esc(x.kind)}</td><td>${esc(x.code)}</td><td>${esc(x.ip)}</td><td>${esc(x.country)}</td><td>${esc(x.action)}</td><td class="muted">${esc([x.source,x.medium,x.campaign].filter(Boolean).join(' / ')||'-')}</td></tr>`).join(''):'<tr><td colspan="7" class="muted">没有事件</td></tr>';
+})().catch(e=>document.getElementById('rows').innerHTML='<tr><td colspan="7" class="muted">加载失败：'+esc(e.message)+'</td></tr>');
+</script></body></html>

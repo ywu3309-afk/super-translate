@@ -1,0 +1,4 @@
+# Runtime scripts are shipped as external resources and are integrity-pinned.
+# Keep their bytes unchanged on Windows checkouts/build runners so the
+# packaged worker hash remains identical to the source hash.
+runtime/*.py text eol=lf

@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>数据管理 · 超级聚合</title>
+<link rel="stylesheet" href="/shared.css">
+<style>
+  body{background:var(--bg)}
+  .wrap{max-width:1100px;margin:0 auto;padding:22px 20px 60px}
+  .head{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+  .head h1{font-size:20px;margin:0}
+  .muted{color:var(--muted);font-size:12px}
+  dialog{background:#141c2d;color:var(--text);border:1px solid var(--line);border-radius:12px;width:520px;max-width:92vw;padding:16px}
+  dialog label{display:block;margin-top:8px;color:var(--muted);font-size:12px}
+  dialog input,dialog textarea{width:100%;margin-top:4px}
+</style>
+</head>
+<body data-help="entities">
+<div class="wrap">
+  <div class="head"><h1>数据管理</h1><select id="ent" style="max-width:240px"></select><button class="btn ghost" onclick="load()">刷新</button><button class="btn" onclick="createRow()">新建</button><span class="muted" id="stat"></span><a class="btn ghost" href="/admin/">返回后台</a></div>
+  <div class="panel"><table><thead id="thead"></thead><tbody id="rows"><tr><td class="muted">加载中…</td></tr></tbody></table></div>
+</div>
+<dialog id="dlg"><form method="dialog" id="f"></form></dialog>
+<script src="/help.js"></script>
+<script>
+const token = localStorage.getItem('admin_token') || '';
+if (!token) location.href = '/admin/';
+let schema = {}, cur = null;
+async function api(path, method = 'GET', body) {
+  const r = await fetch('/api/admin' + path, { method, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: body == null ? null : JSON.stringify(body) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+  return j;
+}
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+async function boot() {
+  const r = await api('/schema');
+  schema = r.entities || {};
+  const sel = document.getElementById('ent');
+  sel.innerHTML = Object.entries(schema).map(([k, v]) => '<option value="' + k + '">' + esc(v.label || k) + '</option>').join('');
+  sel.onchange = () => load();
+  load();
+}
+async function load() {
+  cur = document.getElementById('ent').value;
+  const def = schema[cur];
+  document.getElementById('thead').innerHTML = '<tr><th>ID</th>' + def.fields.map((f) => '<th>' + esc(f.label || f.name) + '</th>').join('') + '<th>操作</th></tr>';
+  try {
+    const { rows } = await api('/entities/' + cur + '?limit=200');
+    document.getElementById('stat').textContent = (def.label || cur) + '：' + rows.length + ' 条';
+    document.getElementById('rows').innerHTML = rows.map((row) => '<tr><td>' + row.id + '</td>' + def.fields.map((f) => '<td>' + esc(String(row[f.name] == null ? '' : row[f.name]).slice(0, 120)) + '</td>').join('') + '<td><button class="btn ghost" onclick="del(' + row.id + ')">删除</button></td></tr>').join('') || '<tr><td class="muted" colspan="99">还没有数据</td></tr>';
+  } catch (e) { document.getElementById('rows').innerHTML = '<tr><td class="muted" colspan="99">加载失败：' + esc(e.message) + '</td></tr>'; }
+}
+function createRow() {
+  const def = schema[cur];
+  const f = document.getElementById('f');
+  f.innerHTML = '<h3 style="margin:0 0 6px">新建 ' + esc(def.label || cur) + '</h3>' + def.fields.map((x) => '<label>' + esc(x.label || x.name) + '</label>' + (x.type === 'textarea' ? '<textarea name="' + x.name + '" rows="3"></textarea>' : '<input name="' + x.name + '">')).join('') + '<div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end"><button value="cancel" class="btn ghost">取消</button><button id="ok" value="ok" class="btn">保存</button></div>';
+  const dlg = document.getElementById('dlg');
+  dlg.showModal();
+  f.onsubmit = async (ev) => {
+    if (ev.submitter && ev.submitter.value === 'cancel') return;
+    ev.preventDefault();
+    const body = {};
+    for (const x of def.fields) body[x.name] = f.elements[x.name].value;
+    try { await api('/entities/' + cur, 'POST', body); dlg.close(); load(); }
+    catch (e) { alert('保存失败：' + e.message); }
+  };
+}
+async function del(id) {
+  if (!confirm('删除 #' + id + '？')) return;
+  try { await api('/entities/' + cur + '/' + id, 'DELETE'); load(); } catch (e) { alert('失败：' + e.message); }
+}
+boot();
+</script>
+</body>
+</html>

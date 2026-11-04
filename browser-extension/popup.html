@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>超级翻译 · 浏览器版</title><link rel="stylesheet" href="popup.css"><link rel="stylesheet" href="language-picker.css"></head>
+<body>
+  <main class="app">
+    <header class="brand-header"><div class="brand"><img class="brand-logo" src="assets/icon-128.png" alt=""><div><h1>超级翻译</h1><p>SUPER TRANSLATE</p></div></div><span class="edition">浏览器版 <b id="version">—</b></span></header>
+    <div class="connection"><span class="dot" id="connection-dot"></span><span id="connection-label">正在读取账号状态…</span><span class="platform">WhatsApp Web</span></div>
+    <section id="login-section" class="card login-card" hidden>
+      <div class="section-kicker">一个账号，连接全球</div><h2>登录超级翻译</h2><p class="muted">使用你的客户账号，共享云端套餐与字符额度。</p>
+      <form id="login-form">
+        <label for="username">客户账号</label><input id="username" autocomplete="username" placeholder="输入客户账号" minlength="3" maxlength="40" required>
+        <label for="password">登录密码</label><div class="password-row"><input id="password" type="password" autocomplete="current-password" placeholder="输入登录密码" minlength="8" maxlength="128" required><button id="show-password" class="text-button" type="button" aria-label="显示密码" aria-pressed="false">显示</button></div>
+        <label class="remember"><input id="remember" type="checkbox">记住账号</label>
+        <button class="primary wide" id="login-button" type="submit">登录云端账号 <span aria-hidden="true">→</span></button>
+      </form><p class="micro">插件不保存密码，关闭浏览器后需重新登录。</p>
+    </section>
+    <section id="account-section" hidden>
+      <div class="quota-card"><div class="quota-top"><span id="account-name">—</span><span class="role-pill" id="account-role">主账号</span><button id="logout" class="quota-link" type="button">退出</button></div><p class="quota-caption">剩余翻译字符</p><div class="quota-number"><strong id="remaining">—</strong><span>字符</span></div><div class="quota-track" role="progressbar" aria-label="字符使用比例" aria-valuemin="0" aria-valuemax="100" id="quota-progress"><span id="quota-bar"></span></div><div class="quota-meta"><span>已使用 <b id="used">—</b> 字符</span><button id="refresh" class="quota-link" type="button">刷新额度 ↻</button></div><div class="plan-line"><span id="plan">—</span><span id="expires">—</span></div></div>
+    </section>
+    <section class="card settings-card"><div class="section-heading"><div><span class="section-kicker">TRANSLATION</span><h2>翻译偏好</h2></div><span class="subtle-pill">智能 API</span></div>
+      <form id="settings-form"><fieldset id="preferences" disabled>
+        <label class="toggle-row"><span><b>启用云端翻译</b><small>使用当前账号的字符额度</small></span><input type="checkbox" id="enabled" role="switch"><span class="switch" aria-hidden="true"></span></label>
+        <div class="language-fields"><div><label for="incoming">收到的消息翻译为</label><select id="incoming"></select></div><div><label for="outgoing">回复内容翻译为</label><select id="outgoing"></select></div></div>
+        <label class="toggle-row auto-row"><span><b>自动翻译客户消息</b><small>仅自动翻译确认来自客户的可见文字，消耗字符额度</small></span><input type="checkbox" id="auto" role="switch"><span class="switch" aria-hidden="true"></span></label>
+        <label class="toggle-row"><span><b>发送前自动替换为译文</b><small>在 WhatsApp 输入，按回车或点击发送后发出译文；失败不发原文</small></span><input type="checkbox" id="auto-send" role="switch"><span class="switch" aria-hidden="true"></span></label>
+        <label for="reply-mode">自动发送的目标语言</label><select id="reply-mode"><option value="follow">跟随当前客户语言</option><option value="fixed">使用上方固定回复语言</option></select>
+        <label class="toggle-row"><span><b>实时预览译文</b><small>停顿 400ms 自动翻译；关闭后仅发送时翻译，节省额度</small></span><input type="checkbox" id="live-preview" role="switch"><span class="switch" aria-hidden="true"></span></label>
+        <button type="submit" class="primary wide" id="save">保存翻译偏好</button>
+      </fieldset></form><p id="settings-hint" class="micro">登录后即可启用翻译。</p>
+    </section>
+    <section id="web-section" class="card web-card" hidden>
+      <div class="section-heading"><div><span class="section-kicker">WEB TRANSLATION</span><h2>网页与视频字幕</h2></div><span class="subtle-pill">按页授权</span></div>
+      <p class="muted web-intro">参考沉浸式双语阅读：只在你点击后翻译当前网页；不会读取密码、输入框、代码块或隐藏内容。</p>
+      <div class="language-fields web-fields">
+        <div><label for="web-target">翻译为</label><select id="web-target"></select></div>
+        <div><label for="web-mode">显示方式</label><select id="web-mode"><option value="bilingual">原文 + 译文</option><option value="replace">仅显示译文</option></select></div>
+      </div>
+      <label class="toggle-row"><span><b>持续翻译动态内容</b><small>适配新闻流、单页应用和滚动加载内容</small></span><input type="checkbox" id="web-dynamic" role="switch" checked><span class="switch" aria-hidden="true"></span></label>
+      <label class="toggle-row"><span><b>翻译已有视频字幕</b><small>YouTube 可见字幕及浏览器已加载的 HTML5 字幕；不抓取音频</small></span><input type="checkbox" id="web-subtitles" role="switch"><span class="switch" aria-hidden="true"></span></label>
+      <div class="web-actions"><button class="primary" id="web-start" type="button">翻译当前网页</button><button class="secondary" id="web-stop" type="button" disabled>恢复本页原文</button></div>
+      <p id="web-status" class="micro" role="status" aria-live="polite">打开普通网页后点击启用；WhatsApp 继续使用专用翻译模块。</p>
+      <p class="micro web-privacy">网页文字或当前字幕片段会发送到超级翻译云端并按字符计费；页面 URL、Cookie、表单内容和视频音频不会发送。停止会取消尚未开始的任务，已经提交云端的请求可能已经计费。</p>
+    </section>
+    <details id="test-section" class="card test-card" hidden><summary>试译一句 <span>检查连接与译文</span></summary><form id="test-form"><label for="sample">待翻译文字</label><textarea id="sample" rows="2" maxlength="3500" required placeholder="例如：你好，很高兴为你服务。"></textarea><p class="micro">按「回复内容翻译为」的已保存语言试译，消耗账号字符额度。</p><button class="secondary wide" type="submit" id="test-button">翻译并检查连接</button></form><p id="test-result" class="test-result" aria-live="polite"></p></details>
+    <p id="feedback" class="feedback" role="status" aria-live="polite"></p>
+    <footer><span class="footer-mark" aria-hidden="true">✦</span> 由你触发发送 · 译文就绪后安全替换 · <a href="https://supertranslation.carseatcoverspace.com/privacy.html" target="_blank" rel="noopener noreferrer">隐私政策</a></footer>
+  </main><script src="core.js"></script><script src="language-picker.js"></script><script src="popup.js"></script>
+</body></html>

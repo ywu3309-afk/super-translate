@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>极速分流工单 · 超级聚合</title>
+<link rel="stylesheet" href="/shared.css">
+<style>body{background:var(--bg)}.wrap{max-width:1200px;margin:0 auto;padding:22px 20px 60px}.head{display:flex;gap:10px;align-items:center;margin-bottom:14px}.head h1{font-size:20px;margin:0}.head .sp{flex:1}.muted{color:var(--muted);font-size:12px}textarea{min-height:60px}</style>
+</head><body data-help="fast"><div class="wrap">
+<div class="head"><h1>极速分流 · 工单与号池</h1><span class="sp"></span><a class="btn ghost" href="/admin/">返回后台</a></div>
+
+<div class="panel"><h2>分流服务</h2>
+  <div class="toolbar"><input id="sn" placeholder="服务名（如 美国-安装）" style="max-width:220px"><input id="sp" placeholder="平台" value="WhatsApp" style="max-width:140px"><input id="sg" placeholder="招呼语" style="flex:1"><button class="btn" onclick="addService()">新建服务</button></div>
+  <table><thead><tr><th>ID</th><th>名称</th><th>平台</th><th>招呼语</th><th>短码</th><th></th></tr></thead><tbody id="svcRows"></tbody></table>
+</div>
+
+<div class="panel"><h2>工单</h2>
+  <div class="grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">
+    <label class="muted">工单名<input id="wn" placeholder="给工单起个名字"></label>
+    <label class="muted">绑定服务<select id="ws"></select></label>
+    <label class="muted">平台<select id="wp"><option>出淘猫聚合SCRM</option><option>CEO SCRM</option><option>海王</option><option>其他</option></select></label>
+    <label class="muted">共享码<input id="wc" placeholder="chm_ 开头或邀请码"></label>
+    <label class="muted">抓取间隔（分钟）<input id="wi" type="number" value="5"></label>
+    <label class="muted">单号日加好友上限<input id="wl" type="number" value="0"></label>
+  </div>
+  <div class="checks" style="display:flex;gap:14px;margin:10px 0;font-size:12px;color:var(--muted)">
+    <label><input type="checkbox" id="wd" checked> 自动禁用离线/异常号</label>
+    <label><input type="checkbox" id="wo"> 自动优化（高访问无转化号停用）</label>
+  </div>
+  <div class="toolbar"><button class="btn" onclick="addWorkorder()">创建工单</button><span class="muted">创建后按间隔抓号；共享码可先点「测试」。</span></div>
+  <table><thead><tr><th>ID</th><th>名称</th><th>共享码</th><th>间隔</th><th>号池</th><th>最近抓取</th><th>状态</th><th style="text-align:right">操作</th></tr></thead><tbody id="woRows"></tbody></table>
+</div>
+
+<div class="panel"><h2>号池</h2><table><thead><tr><th>工单</th><th>号码</th><th>状态</th><th>加入时间</th></tr></thead><tbody id="poolRows"></tbody></table></div>
+</div>
+<script src="/help.js"></script>
+<script>
+const token=localStorage.getItem('admin_token')||'';if(!token)location.href='/admin/';
+const $=(id)=>document.getElementById(id);const esc=(s)=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=(t)=>t?new Date(t).toLocaleString('zh-CN',{hour12:false}):'';
+async function api(p,m='GET',b){const r=await fetch('/api/admin'+p,{method:m,headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:b==null?null:JSON.stringify(b)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||('HTTP '+r.status));return j;}
+function toast(m){const d=document.createElement('div');d.textContent=m;d.style.cssText='position:fixed;left:50%;top:20px;transform:translateX(-50%);background:#1c2740;border:1px solid #2b3850;padding:9px 16px;border-radius:10px;z-index:99';document.body.appendChild(d);setTimeout(()=>d.remove(),2200);}
+let services=[],orders=[];
+async function load(){
+  services=(await api('/fast/services')).rows;orders=(await api('/fast/workorders')).rows;
+  $('svcRows').innerHTML=services.map(s=>`<tr><td>${s.id}</td><td>${esc(s.name)}</td><td>${esc(s.platform)}</td><td class="muted">${esc(s.greeting||'')}</td><td>${esc(s.code)}</td><td><button class="btn ghost" onclick="delService(${s.id})">删除</button></td></tr>`).join('')||'<tr><td colspan="6" class="muted">还没有服务</td></tr>';
+  $('ws').innerHTML='<option value="0">未绑定</option>'+services.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');
+  const pool=(await api('/fast/pool')).rows;
+  $('woRows').innerHTML=orders.map(w=>`<tr><td>${w.id}</td><td>${esc(w.name)}</td><td>${esc(w.share_code||'-')}</td><td>${w.interval_min} 分</td><td>${pool.filter(p=>p.workorder_id===w.id).length}</td><td class="muted">${esc(w.last_fetch||'-')}</td><td>${w.status==='active'?'启用':'停用'}</td><td style="text-align:right"><button class="btn ghost" onclick="testCode(${w.id})">测试共享码</button> <button class="btn ghost" onclick="fetchNow(${w.id})">立即抓号</button> <button class="btn ghost" onclick="delOrder(${w.id})">删除</button></td></tr>`).join('')||'<tr><td colspan="8" class="muted">还没有工单</td></tr>';
+  $('poolRows').innerHTML=pool.map(p=>`<tr><td>${esc(p.workorder_name||p.workorder_id)}</td><td>${esc(p.number)}</td><td>${p.status}</td><td class="muted">${fmt(p.created_at)}</td></tr>`).join('')||'<tr><td colspan="4" class="muted">号池为空</td></tr>';
+}
+async function addService(){const name=$('sn').value.trim();if(!name)return toast('填服务名');await api('/fast/services','POST',{name,platform:$('sp').value.trim()||'WhatsApp',greeting:$('sg').value.trim()});$('sn').value='';load();}
+async function delService(id){if(!confirm('删除服务 #'+id+'？'))return;await api('/fast/services','DELETE',{id});load();}
+async function addWorkorder(){const name=$('wn').value.trim();if(!name)return toast('填工单名');await api('/fast/workorders','POST',{name,service_id:Number($('ws').value),platform:$('wp').value,share_code:$('wc').value.trim(),interval_min:Number($('wi').value)||5,auto_disable:$('wd').checked,auto_optimize:$('wo').checked,daily_limit:Number($('wl').value)||0});$('wn').value='';toast('工单已创建');load();}
+async function delOrder(id){if(!confirm('删除工单 #'+id+'？'))return;await api('/fast/workorders','DELETE',{id});load();}
+async function testCode(id){try{const r=await api('/fast/workorders/'+id+'/test','POST',{});toast('共享码有效：在线 '+r.online+' 个 / 共 '+r.total+' 个');}catch(e){toast('测试失败：'+e.message);}}
+async function fetchNow(id){try{const r=await api('/fast/workorders/'+id+'/fetch','POST',{});toast('抓号完成：新增 '+r.added+'，号池 '+r.total);load();}catch(e){toast('抓号失败：'+e.message);}}
+load().catch(e=>toast('加载失败：'+e.message));
+</script></body></html>

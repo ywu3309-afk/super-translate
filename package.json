@@ -1,0 +1,148 @@
+{
+  "name": "super-translate",
+  "version": "0.7.45",
+  "packageManager": "pnpm@11.25.0",
+  "private": true,
+  "main": "src/desktop.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win nsis",
+    "prepareui": "node scripts/sync-ui.cjs",
+    "test:package-hardening": "node tests/package-hardening.cjs",
+    "test:packaged": "node tests/packaged.cjs",
+    "test:packaged-debug": "node tests/cdp-packaged-debug.cjs",
+    "test:runtime-integrity": "node tests/runtime-integrity.cjs",
+    "test:unread": "node tests/unread-notifications.cjs",
+    "test:wa-live-intercept": "node tests/wa-live-intercept.cjs",
+    "test:wa-country-list": "node tests/wa-country-list.cjs",
+    "test:customer-team": "node tests/customer-team-ui.cjs",
+    "test:user-center": "node tests/user-center.cjs",
+    "test:platform-runtime": "node tests/platform-runtime.cjs",
+    "test:speech-runtime": "node tests/speech-runtime.cjs",
+    "test:speech-ui": "node tests/speech-ui.cjs",
+    "test:incoming-voice": "node tests/incoming-voice.cjs",
+    "test:customer-heartbeat": "node tests/customer-heartbeat.cjs",
+    "test:account-ordering": "node tests/account-ordering.cjs",
+    "test:proxy-settings": "node tests/proxy-settings.cjs",
+    "test:proxy-runtime": "node tests/proxy-runtime.cjs",
+    "test:speech-install": "node tests/speech-install.cjs",
+    "test:speech-tier-install": "node tests/speech-tier-install.cjs",
+    "test:browser-extension-core": "node --test tests/browser-extension-core.cjs tests/browser-extension-contact-drift.cjs",
+    "test:browser-extension-ui": "node tests/browser-extension-ui.cjs",
+    "test:browser-extension-auto": "node tests/browser-extension-auto.cjs",
+    "test:browser-extension-web-security": "node --test tests/browser-extension-web-security.cjs",
+    "test:browser-extension-web": "node tests/browser-extension-web.cjs",
+    "test:browser-extension-subtitles": "node tests/browser-extension-subtitles.cjs"
+  },
+  "devDependencies": {
+    "@electron/fuses": "1.8.0",
+    "electron": "^44.2.0",
+    "electron-builder": "^26.0.0",
+    "playwright": "^1.63.0"
+  },
+  "build": {
+    "appId": "com.supertranslate.desktop",
+    "productName": "超级翻译",
+    "asar": true,
+    "electronFuses": {
+      "runAsNode": false,
+      "enableCookieEncryption": true,
+      "enableNodeOptionsEnvironmentVariable": false,
+      "enableNodeCliInspectArguments": false,
+      "enableEmbeddedAsarIntegrityValidation": true,
+      "onlyLoadAppFromAsar": true,
+      "grantFileProtocolExtraPrivileges": true
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "src/icon.ico"
+    },
+    "files": [
+      "src/desktop.js",
+      "src/desktop-preload.js",
+      "src/login-preferences.js",
+      "src/runtime-integrity.js",
+      "src/runtime-integrity.json",
+      "src/speech-runtime.js",
+      "src/wa-preload.js",
+      "src/platform-preload.js",
+      "src/wa-runtime-reader.js",
+      "src/data.js",
+      "src/auth.js",
+      "src/native-guard.js",
+      "src/scrm-service.js",
+      "src/integrations/**/*",
+      "src/text-core.js",
+      "src/platforms.js",
+      "src/workbench/**/*",
+      "src/login/**/*",
+      "src/icon.ico",
+      "package.json",
+      "!**/*.map"
+    ],
+    "extraResources": [
+      {
+        "from": "runtime/local_server.py",
+        "to": "runtime/local_server.py"
+      },
+      {
+        "from": "runtime/whisper_worker.py",
+        "to": "runtime/whisper_worker.py"
+      },
+      {
+        "from": "runtime/llama-cpp",
+        "to": "runtime/llama-cpp",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "runtime/7zip",
+        "to": "runtime/7zip",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "scrm",
+        "to": "scrm",
+        "filter": [
+          "server.js",
+          "schema.js",
+          "public/**/*",
+          "data/**/*"
+        ]
+      },
+      {
+        "from": "native",
+        "to": "guard",
+        "filter": [
+          "guard.exe"
+        ]
+      }
+    ],
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "超级翻译"
+    },
+    "artifactName": "SuperTranslate-Personal-Setup-${version}.${ext}",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "ywu3309-afk",
+        "repo": "super-translate",
+        "releaseType": "release",
+        "private": false
+      }
+    ]
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9",
+    "libphonenumber-js": "^1.13.12",
+    "socks": "^2.8.7"
+  },
+  "description": "Super Translate personal bilingual WhatsApp workbench",
+  "author": "Super Translate"
+}

@@ -1,0 +1,13 @@
+7-Zip extraction runtime provenance
+
+Source package: electron-winstaller npm dependency, vendor/7z.exe and vendor/7z.dll
+Upstream: https://www.7-zip.org/
+Observed version: 7-Zip 16.04 x64 (2016-10-04)
+Purpose: Extract the official two-volume Super Translate FunASR model package selected by the customer.
+
+SHA-256
+7z.exe  C7245E21A7553D9E52D434002A401C77A7CA7D0F245F2311B0DDF16F8F946C6F
+7z.dll  9ED007AA82E440CEB39A6E105BB1D602A9BC59A4946267BA8DE2F220AA15BC06
+
+The client verifies both hashes immediately before starting 7z.exe.
+See LICENSE.txt in this directory for license and redistribution terms.
