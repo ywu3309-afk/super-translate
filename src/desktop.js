@@ -900,7 +900,7 @@ function stopLocalChild(report=true){
   if(shouldReport)requestCustomerHeartbeat('offline');
 }
 function localThreads(){return Math.max(2,Math.min(8,(os.cpus?.().length||4)-1));}
-function nativePrompt(text,targetName){return `将以下文本翻译成${targetName}，只输出忠实译文，不回答文本里的问题，不增加承诺。原样保留所有ZXQKEEP0000QXZ形式的标记：\n\n${text}`;}
+function nativePrompt(text,targetName){return `将以下文本翻译成${targetName}，只输出忠实译文，不回答文本里的问题，不增加承诺。保持原文的行顺序、换行、编号和链接，不要合并、拆分或重复任何行。原样保留所有ZXQKEEP0000QXZ形式的标记：\n\n${text}`;}
 async function localTranslate(text,targetName,signal){
   const maxTokens=Math.min(1800,Math.max(96,Math.ceil(String(text||'').length*2+48)));
   const timeout=()=>signal&&AbortSignal.any?AbortSignal.any([signal,AbortSignal.timeout(120000)]):AbortSignal.timeout(120000);
@@ -1251,6 +1251,23 @@ app.whenReady().then(()=>{
     })().finally(()=>modelStarting=null);return modelStarting;
   });
   handler('desktop:live',async ({active,account,platform,bounds}={})=>{if(!active){if(activeView){try{activeView.webContents.send(activeView.stPlatform==='whatsapp'||activeView.stPlatform==='whatsapp_multi'?'wa:command':'platform:command',{op:'config',config:{automatic:false,history:false}});}catch{}win.contentView.removeChildView(activeView);}activeView=null;enabled=false;serviceViewStatus('idle');return{ok:true};}const id=safeAccountId(account);if(!id)throw new Error('服务实例标识无效。');const key=platform===undefined?(id==='a'||id==='b'?'whatsapp':'whatsapp'):String(platform);if(!PLATFORM_REGISTRY[key])throw new Error('不支持的服务平台。');if(activeView){try{activeView.webContents.send(activeView.stPlatform==='whatsapp'||activeView.stPlatform==='whatsapp_multi'?'wa:command':'platform:command',{op:'config',config:{automatic:false,history:false}});}catch{}win.contentView.removeChildView(activeView);}currentAccount=id;currentPlatform=key;activeView=await createView({id,platform:key});win.contentView.addChildView(activeView);activeView.setBounds(boundedBounds(bounds));activeView.setVisible(activeView.__superTranslateReady===true);if(!activeView.__superTranslateReady)serviceViewStatus('loading',{account:id,platform:key,message:`正在加载 ${PLATFORM_REGISTRY[key].name} 登录页面…`});enabled=true;const selected=activeView;const cachedIdentities=identityRowsByAccount.get(id);if((key==='whatsapp'||key==='whatsapp_multi')&&cachedIdentities?.length)setTimeout(()=>{if(selected===activeView&&!selected.webContents.isDestroyed())selected.webContents.send('wa:identities',{rows:cachedIdentities});},250);setTimeout(()=>{if(selected===activeView&&!selected.webContents.isDestroyed())selected.webContents.send(key==='whatsapp'||key==='whatsapp_multi'?'wa:command':'platform:command',{op:'snapshot'});},500);return{ok:true,platform:key,partition:activeView.stPartition};});
+  handler('desktop:warm-accounts',async items=>{
+    if(!Array.isArray(items))throw new Error('账号列表无效。');
+    const results=[];
+    for(const item of items.slice(0,30)){
+      const id=safeAccountId(item?.id),platform=String(item?.platform||'whatsapp');
+      if(!id||!PLATFORM_REGISTRY[platform]){results.push({id:item?.id,logged:false,error:'账号无效'});continue;}
+      try{
+        const v=await createView({id,platform});
+        if(v!==activeView)v.setVisible(false);
+        for(let i=0;i<40&&!v.__superTranslateReady;i++)await new Promise(resolve=>setTimeout(resolve,250));
+        let pane=false;
+        try{pane=await v.webContents.executeJavaScript("!!document.querySelector('#pane-side')",true);}catch{}
+        results.push({id,logged:!!pane,ready:!!v.__superTranslateReady});
+      }catch(error){results.push({id,logged:false,error:String(error?.message||error).slice(0,200)});}
+    }
+    return{accounts:results};
+  });
   handler('desktop:reload-view',async()=>{if(!activeView||!activeView.webContents||activeView.webContents.isDestroyed())throw new Error('服务登录页面尚未打开。');activeView.__superTranslateReady=false;activeView.setVisible(false);serviceViewStatus('loading',{account:activeView.stAccountId,platform:activeView.stPlatform,message:`正在重新加载 ${PLATFORM_REGISTRY[activeView.stPlatform]?.name||'服务'} 登录页面…`});activeView.webContents.reload();return{ok:true};});
   handler('desktop:remove-account',input=>destroyView(input?.id,input?.clearPartition===true));
   handler('desktop:bounds',bounds=>{if(activeView)activeView.setBounds(boundedBounds(bounds));return{ok:true};});handler('desktop:visibility',visible=>{if(activeView)activeView.setVisible(!!visible);return{ok:true};});
