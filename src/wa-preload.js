@@ -344,6 +344,12 @@ function notifyComposerInput(inputEl,text){
   try{inputEl.dispatchEvent(new InputEvent('input',{bubbles:true,inputType:'insertText',data:text}));}
   catch{inputEl.dispatchEvent(new Event('input',{bubbles:true}));}
 }
+function clearComposerContents(inputEl){
+  inputEl.focus();
+  try{document.execCommand('selectAll',false,null);document.execCommand('delete',false,null);}catch{}
+  if(cleanDraft(inputEl)){selectComposerContents(inputEl);try{document.execCommand('delete',false,null);}catch{}}
+  notifyComposerInput(inputEl,'');
+}
 function liveComposer(chatKey,expectedText){
   const current=editor();
   if(!current?.isConnected||!isDisplayed(current)||chatKey&&chat().key!==chatKey)return null;
@@ -366,6 +372,7 @@ async function replaceComposerText(inputEl,translated,chatKey='',original=''){
     translated=await translateComposer(current,original,chatKey);
     if(!translated)throw new Error('译文安全检查未通过，已阻止发送。');
   }
+  let cleared=false;
   for(let attempt=0;attempt<5;attempt++){
     current=liveComposer(chatKey);if(!current)throw new Error('WhatsApp 输入框或聊天已变化，已阻止发送。');
     lastObserved=cleanDraft(current);
@@ -373,7 +380,7 @@ async function replaceComposerText(inputEl,translated,chatKey='',original=''){
       await wait(90);current=liveComposer(chatKey,translated);if(current)return current;
       continue;
     }
-    if(!composerTextMatches(lastObserved,original)){
+    if(!cleared&&!composerTextMatches(lastObserved,original)){
       if(!lastObserved)throw new Error('WhatsApp 输入框内容为空，已阻止发送。');
       original=lastObserved;
       translated=await translateComposer(current,original,chatKey);
@@ -381,7 +388,15 @@ async function replaceComposerText(inputEl,translated,chatKey='',original=''){
       await wait(80);
       continue;
     }
-    selectComposerContents(current);
+    // Select-and-replace is unreliable in WhatsApp's Lexical editor for long
+    // multiline M3U messages: the caret stays mid-draft and the translation is
+    // inserted into the old text. Clear the composer first, then insert.
+    clearComposerContents(current);
+    cleared=true;
+    await wait(60);
+    current=liveComposer(chatKey);if(!current)throw new Error('WhatsApp 输入框或聊天已变化，已阻止发送。');
+    lastObserved=cleanDraft(current);
+    if(lastObserved)selectComposerContents(current);
     const inserted=document.execCommand('insertText',false,translated);
     notifyComposerInput(current,translated);
     await wait(90+attempt*70);
@@ -423,7 +438,10 @@ async function doSendTranslated(inputEl){
       if(document.activeElement!==inputEl)throw new Error('无法聚焦 WhatsApp 输入框，已阻止发送。');
       inputEl=await replaceComposerText(inputEl,translated,chatKey,original);
       if(!inputEl||chat().key!==chatKey)throw new Error('聊天已切换；译文未发送，请检查当前草稿。');
-      if(!composerTextMatches(cleanDraft(inputEl),translated))throw new Error('无法确认 WhatsApp 已接收完整译文，已阻止发送。');
+      // replaceComposerText already verified the inserted draft. A second strict
+      // check after WhatsApp's React/Lexical repaint can reject valid long,
+      // multiline M3U text after URL linkification. Only block an empty draft.
+      if(!cleanDraft(inputEl))throw new Error('WhatsApp 输入框为空，已阻止发送。');
       const sendButton=currentSendButton(inputEl);composerState={...composerState,status:'sending'};sendComposerPreview('sending');allowNativeSend=true;
       try{
         if(sendButton)sendButton.click();

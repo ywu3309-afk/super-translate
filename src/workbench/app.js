@@ -1,4 +1,4 @@
-﻿(() => {
+(() => {
   'use strict';
   const M=WorkbenchModel, $=id=>document.getElementById(id), api=window.superDesktop, CRM=window.TrafficCRM;
   const storageKey='super-translate-workbench-v1';
@@ -1120,6 +1120,18 @@ let autoReplyEnabled=localStorage.getItem('super-translate.auto-reply')==='1',au
     details.append(prompt);wrap.append(details);
     panel.append(wrap);icons();
   }
+  let accountsWarmed=false;
+  async function warmAccounts(){
+    if(accountsWarmed||!api?.warmAccounts)return;
+    accountsWarmed=true;
+    const targets=state.accounts.filter(a=>a.platform==='whatsapp'||a.platform==='whatsapp_multi').map(a=>({id:a.id,platform:a.platform}));
+    if(!targets.length)return;
+    try{
+      const result=await api.warmAccounts(targets);
+      for(const item of result?.accounts||[]){if(item?.logged)connectionState[item.id]=true;}
+      renderAccounts();
+    }catch(error){console.warn('[warm-accounts]',error);}
+  }
   async function loadAutoReplyRules(){
     if(autoReplyRules)return autoReplyRules;
     await scrmEnsureSession();
@@ -1289,7 +1301,7 @@ let autoReplyEnabled=localStorage.getItem('super-translate.auto-reply')==='1',au
   $('refresh-page')?.addEventListener('click',refreshPage);
   $('back-login')?.addEventListener('click',async()=>{try{if(live)await api.setLive({active:false});if(api)api.window('login');else location.href='../login/index.html';}catch(error){toast(error?.message||'无法返回登录页。');}});
   initSearchableSelects();$('composer').value=active?M.scopedDraft(state,state.selectedAccount,active.id):'';renderAll();renderServiceViewStatus();
-  if(api){document.querySelector('.rail-unread').hidden=true;document.body.classList.add('connecting-real');api.authStatus().then(status=>{const label=document.querySelector('#user-center-button')||document.querySelector('.operator-avatar');if(status.user){const isCustomer=status.user.accountType==='customer';const quota=status.user.unlimited?'不限量':(status.user.quota===null||status.user.quota===undefined?'待分配':`${status.user.quota} 字`);if(label){label.title=`${status.user.username} · ${isCustomer?'云端客户':'云端/本地管理员'} · ${quota}`;label.setAttribute('aria-label',`用户中心：${status.user.username}，${isCustomer?'客户':'管理员'}，${quota}`);if(label.classList.contains('operator-avatar'))label.textContent=isCustomer?'客':'管';}}return toggleLive();}).finally(()=>document.body.classList.remove('connecting-real'));}
+  if(api){document.querySelector('.rail-unread').hidden=true;document.body.classList.add('connecting-real');api.authStatus().then(status=>{const label=document.querySelector('#user-center-button')||document.querySelector('.operator-avatar');if(status.user){const isCustomer=status.user.accountType==='customer';const quota=status.user.unlimited?'不限量':(status.user.quota===null||status.user.quota===undefined?'待分配':`${status.user.quota} 字`);if(label){label.title=`${status.user.username} · ${isCustomer?'云端客户':'云端/本地管理员'} · ${quota}`;label.setAttribute('aria-label',`用户中心：${status.user.username}，${isCustomer?'客户':'管理员'}，${quota}`);if(label.classList.contains('operator-avatar'))label.textContent=isCustomer?'客':'管';}}return toggleLive().then(()=>warmAccounts());}).finally(()=>document.body.classList.remove('connecting-real'));}
 
 })();
 
